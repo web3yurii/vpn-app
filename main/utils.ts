@@ -51,7 +51,7 @@ export async function getFingerPrintData(): Promise<Map<string, FingerPrintData>
 }
 
 export async function checkIP(useProxy: boolean): Promise<string | null> {
-  console.log("Checking IP idk where from");
+  console.log("Checking IP...");
   const url = "https://api.ipify.org?format=json";
   const MAX_ATTEMPTS = 3;
 
@@ -61,12 +61,13 @@ export async function checkIP(useProxy: boolean): Promise<string | null> {
         try {
           const response = await state.anonSocksClient.get(url);
           if (response.data && response.data.ip) {
+            console.log(`IP via proxy: ${response.data.ip}`);
             return response.data.ip;
           }
-        } catch (error) {
-          console.error(`Attempt ${attempt}: Error parsing IP response:`, error);
+        } catch (error: any) {
+          console.error(`Attempt ${attempt}: IP check via proxy failed:`, error.message);
           if (attempt < MAX_ATTEMPTS) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 3000));
             continue;
           }
           return null;
@@ -74,28 +75,26 @@ export async function checkIP(useProxy: boolean): Promise<string | null> {
       } else {
         const response = await fetch(url);
         if (!response.ok) {
-          console.error(`Attempt ${attempt}: Error fetching IP address:`, response.statusText);
-          if (attempt < MAX_ATTEMPTS) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            continue;
-          }
-          return null;
+          console.error(`Attempt ${attempt}: IP fetch failed: ${response.statusText}`);
+          continue;
         }
+
         const data = await response.json();
-        if (data && data.ip) {
+        if (data?.ip) {
+          console.log(`IP without proxy: ${data.ip}`);
           return data.ip;
         }
       }
-    } catch (error) {
-      console.error(`Attempt ${attempt}: Error fetching IP address:`, error);
+    } catch (error: any) {
+      console.error(`Attempt ${attempt}: IP check error:`, error.message);
       if (attempt < MAX_ATTEMPTS) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       } else {
         return null;
       }
     }
   }
-  
+
   return null;
 }
 

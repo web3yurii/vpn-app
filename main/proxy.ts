@@ -1,24 +1,12 @@
 // src/main/proxy.ts
-import {
-  Process,
-  Socks,
-  Control,
-  AnonRunningError,
-  BootstrapProgressEvent
-} from "@anyone-protocol/anyone-client";
-import {
-  startProxy as startPrivoxy,
-  stopProxy as stopPrivoxy,
-} from "./utils/proxy";
-import { setProxySettings } from "./systemProxy";
-import { state } from "./state";
-import { checkIP, showNotification } from "./utils";
-import { getAvailablePort } from "./utils/proxy";
-import { ipcMain } from "electron";
-import { getFingerPrintData } from "./utils";
-import { RelayData, ProxyRuleConfig } from "./state";
-import Store  from "electron-store";
-import { EventType, ExtendCircuitOptions, Flag, StreamEvent } from "@anyone-protocol/anyone-client/out/models";
+import {AnonRunningError, BootstrapProgressEvent, Control, Process, Socks} from "@anyone-protocol/anyone-client";
+import {stopProxy as stopPrivoxy,} from "./utils/proxy";
+import {setProxySettings} from "./systemProxy";
+import {ProxyRuleConfig, RelayData, state} from "./state";
+import {checkIP, getFingerPrintData, showNotification} from "./utils";
+import {ipcMain} from "electron";
+import Store from "electron-store";
+import {EventType, ExtendCircuitOptions, Flag, StreamEvent} from "@anyone-protocol/anyone-client/out/models";
 
 const store = new Store();
 
@@ -66,7 +54,7 @@ export async function startAnyoneProxy() {
     try {
       if (termsFilePath) {
         state.anon = new Process({
-          displayLog: false,
+          displayLog: true,
           // socksPort: state.anonPort,
           // controlPort: state.anonControlPort,
           binaryPath: exePath,
@@ -75,7 +63,7 @@ export async function startAnyoneProxy() {
         });
       } else {
         state.anon = new Process({
-          displayLog: false,
+          displayLog: true,
           binaryPath: exePath,
           autoTermsAgreement: true,
         });
@@ -548,18 +536,16 @@ async function createRoutingMap() {
   
   // import the routing map from the store
   const proxyRules = store.get('proxyRules', []) as ProxyRule[];
-  const proxyRuleConfig = {
-    routings: proxyRules.flatMap(rule => 
-      rule.destinations.map(destination => ({
-        targetAddress: destination,
-        hops: rule.hops,
-        entryCountries: rule.entryCountries,
-        exitCountries: rule.exitCountries,
-      }))
+  state.proxyRuleConfig = {
+    routings: proxyRules.flatMap(rule =>
+        rule.destinations.map(destination => ({
+          targetAddress: destination,
+          hops: rule.hops,
+          entryCountries: rule.entryCountries,
+          exitCountries: rule.exitCountries,
+        }))
     )
   } as ProxyRuleConfig;
-
-  state.proxyRuleConfig = proxyRuleConfig;
   const routingMap: Record<string, number> = {};
 
   // Filter out bad exits
@@ -648,7 +634,6 @@ async function createRoutingMap() {
       console.log('Circuit created:', circuitId);
     } catch (error) {
       console.error(`Failed to create circuit for ${route.targetAddress}:`, error);
-      continue;
     }
   }
 
@@ -660,12 +645,6 @@ async function createRoutingMap() {
   const eventListener = async (event: StreamEvent) => {
     try {
       // console.log('Stream event:', event);
-      
-      // Detect circuit failures through REMAP events
-      if (event.status === 'REMAP') {
-        console.log(`Circuit failure detected: Stream ${event.streamId} remapped from circuit ${event.circId} to new circuit`);
-        handleCircuitFailure(event.circId, event.target);
-      }
       
       if (event.status === 'NEW') {
         const targetAddress = event.target.split(':')[0];
@@ -679,9 +658,6 @@ async function createRoutingMap() {
             break;
           }
         }
-        
-        console.log('circuitId', circuitId);
-        // console.log('routingMap', state.routingMap);
 
         if (circuitId && (event.circId === '0' || event.circId === undefined)) {
           console.log('Attaching stream to circuit in routing map:', circuitId);
@@ -692,49 +668,11 @@ async function createRoutingMap() {
             // Continue processing other streams even if this one fails
           }
         } else {
-          let circuits;
-          let retries = 3;
-          let success = false;
-          
-          while (retries > 0 && !success) {
-            try {
-              circuits = await state.anonControlClient.circuitStatus();
-              
-              if (!circuits || circuits.length === 0) {
-                throw new Error('No circuits found in response');
-              }
-              
-              success = true;
-            } catch (error) {
-              console.log(`Error getting circuit status (attempt ${4-retries}/3):`, error.message);
-              if (error.message.includes('Failed to get relay address')) {
-                console.log('Got circuit status but failed to get relay info, proceeding with available data');
-                success = true;
-              } else {
-                retries--;
-                if (retries === 0) {
-                  console.error('Failed to get circuit status after multiple attempts:', error);
-                  return;
-                }
-                await new Promise(resolve => setTimeout(resolve, 2000));
-              }
-            }
-          }
-          
-          const openCircuits = circuits.filter(circuit => 
-            circuit.state === 'BUILT' && 
-            circuit.purpose === 'GENERAL' &&
-            circuit.relays.length === 3
-          );
-          
-          if (openCircuits.length > 0) {
-            const randomCircuit = openCircuits[Math.floor(Math.random() * openCircuits.length)];
-            console.log(`Found ${openCircuits.length} open circuits, randomly selected circuit ${randomCircuit.circuitId}`);
-            try {
-              await state.anonControlClient.attachStream(event.streamId, randomCircuit.circuitId);
-            } catch (error) {
-              console.error(`Failed to attach stream ${event.streamId} to random circuit ${randomCircuit.circuitId}:`, error);
-            }
+          try {
+            await state.anonControlClient.attachStream(event.streamId, 0);
+          } catch (error) {
+            console.error(`Failed to attach stream ${event.streamId} to circuit 0:`, error);
+            // Continue processing other streams even if this one fails
           }
         }
       }

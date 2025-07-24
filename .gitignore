@@ -23,3 +23,5 @@ scripts/notarize.js
 /out
 
 .DS_Store
+
+.idea
