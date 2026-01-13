@@ -31,7 +31,7 @@
     "build:mac:with-dmg": "npm run forge:package:mac && npm run create:dmg"
   },
   "dependencies": {
-    "@anyone-protocol/anyone-client": "^1.0.0-beta.6",
+    "@anyone-protocol/anyone-client": "file:../anon-protocol-npm/anyone-protocol-anyone-client-1.1.7-beta.0.tgz",
     "@babel/runtime-corejs3": "^7.27.3",
     "@lwtlab/node-mac-app-icon": "^0.1.0",
     "auto-launch": "^5.0.6",

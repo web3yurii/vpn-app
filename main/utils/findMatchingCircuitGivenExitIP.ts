@@ -1,8 +1,8 @@
-import { AnonControlClient } from "@anyone-protocol/anyone-client";
+import { Control } from "@anyone-protocol/anyone-client";
 
 export async function findMatchingCircuitGivenExitIP(
   circuit: any,
-  controlClient: AnonControlClient,
+  controlClient: Control,
   ip: string
 ) {
   if (circuit.relays && circuit.relays.length > 0) {
