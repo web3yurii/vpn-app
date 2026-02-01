@@ -234,6 +234,7 @@ function convertProxyRulesToVPNTargets(): VPNTarget[] {
                 exitCountries: rule.exitCountries.map(c => c.toLowerCase()),
                 minCircuits: 1,
                 maxCircuits: 3,
+                hopCount: rule.hops as 2 | 3,
             });
         }
     }
