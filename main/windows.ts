@@ -37,7 +37,9 @@ export function createMainWindow(): BrowserWindow {
   } else {
     const port = process.argv[2];
     mainWindow.loadURL(`http://localhost:${port}/`);
-    mainWindow.webContents.openDevTools();
+    if (process.env.DEVTOOLS === "true") {
+      mainWindow.webContents.openDevTools();
+    }
   }
 
   mainWindow.webContents.on("before-input-event", (event, input) => {

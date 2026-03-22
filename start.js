@@ -5,9 +5,9 @@ const { spawn } = require("child_process");
 process.title = "AnyoneVpn";
 
 // Spawn Nextron with custom electron options
-const nextronProcess = spawn("npx", ["nextron", "--electron-options=''"], {
+const nextronProcess = spawn("npx", ["nextron"], {
   stdio: "inherit",
-  shell: true,
+  shell: false,
 });
 
 // Relay the process exit signal

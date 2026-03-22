@@ -138,26 +138,52 @@ export async function getGeolocation(ip: string) {
 }
 
 export async function getGeolocationByCoords(lat: number, lon: number) {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`
-    );
-    if (!response.ok) throw new Error("openstreetmap failed");
-
-    const data = await response.json();
-
-    return {
-      latitude: lat,
-      longitude: lon,
-      city: data.address.city ? data.address.city : data.address.village,
-      region: data.address.state,
-      country: data.address.country,
-      countryCode: data.address.country_code,
-    };
-  } catch (error) {
-    console.error("Error fetching geolocation by coordinates:", error);
+  if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) {
+    console.error("Invalid coordinates for reverse geocoding:", { lat, lon });
     return null;
   }
+
+  const MAX_ATTEMPTS = 3;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            "User-Agent": "AnyoneVPN/1.0 (https://anyone.io)",
+          },
+        }
+      );
+      if (!response.ok) throw new Error(`openstreetmap returned ${response.status}`);
+
+      const data = await response.json();
+
+      return {
+        latitude: lat,
+        longitude: lon,
+        city: data.address?.city || data.address?.town || data.address?.village,
+        region: data.address?.state,
+        country: data.address?.country,
+        countryCode: data.address?.country_code,
+      };
+    } catch (error) {
+      console.error(`Attempt ${attempt}: Error fetching geolocation by coordinates:`, error);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+  }
+
+  // Fallback: return coords with no place names rather than null
+  return {
+    latitude: lat,
+    longitude: lon,
+    city: null,
+    region: null,
+    country: null,
+    countryCode: null,
+  };
 }
 
 export async function getIcon(iconPath: string) {

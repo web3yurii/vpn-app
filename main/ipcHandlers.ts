@@ -244,6 +244,29 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
     return store.get("proxyRules", []) as ProxyRule[];
   });
 
+  ipcMain.handle("get-global-exit-country", () => {
+    return store.get("globalExitCountry", null) as string | null;
+  });
+
+  ipcMain.handle("set-global-exit-country", async (_event, country: string | null) => {
+    store.set("globalExitCountry", country);
+    if (state.anonControlClient && state.isProxyRunning) {
+      if (country) {
+        await state.anonControlClient.setConf("ExitNodes", `{${country}}`);
+        await state.anonControlClient.setConf("StrictNodes", "1");
+      } else {
+        await state.anonControlClient.resetConf("ExitNodes", "StrictNodes");
+      }
+    }
+    state.mainWindow?.webContents.send("global-exit-country-changed", country);
+  });
+
+  ipcMain.handle("get-available-countries", () => {
+    const live = state.stateManager?.getAvailableCountries();
+    if (live && live.length > 0) return live;
+    return store.get("cachedAvailableCountries", []) as string[];
+  });
+
   // change proxy port
   ipcMain.handle("change-proxy-port", async (_event, port: number) => {
     if (!state.isProxyRunning) {

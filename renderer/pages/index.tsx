@@ -1,6 +1,7 @@
 // renderer/pages/index.tsx
 import React, { useState } from "react";
-import dynamic from "next/dynamic"; // Import dynamic from Next.js
+import dynamic from "next/dynamic";
+import GlobalExitCountrySelector from "../components/GlobalExitCountrySelector";
 import {
   Box,
   Stack,
@@ -56,6 +57,8 @@ function ExpandedHomePage() {
     screenSize,
     numberOfRelays,
     showAnimations,
+    globalExitCountry,
+    setGlobalExitCountry,
   } = useAppContext();
 
   const bgColor = useColorModeValue("gray.100", "#18181B");
@@ -230,6 +233,14 @@ function ExpandedHomePage() {
                     isLoading={isLoading}
                     expanded={true}
                   />
+
+                  <GlobalExitCountrySelector
+                    globalExitCountry={globalExitCountry}
+                    setGlobalExitCountry={setGlobalExitCountry}
+                    menuTextColor={menuTextColor}
+                    headerBgColor={ipcCardText}
+                  />
+
                   <Flex
                     flexDirection={"column"}
                     justify={"center"}

@@ -138,6 +138,13 @@ export async function startAnyoneProxy() {
         }
         await state.anonControlClient.authenticate();
 
+        // Apply global exit country if configured
+        const globalExitCountry = store.get("globalExitCountry", null) as string | null;
+        if (globalExitCountry) {
+            await state.anonControlClient.setConf("ExitNodes", `{${globalExitCountry}}`);
+            await state.anonControlClient.setConf("StrictNodes", "1");
+        }
+
         // Initialize StateManager (for relay caching, VPNManager handles events)
         console.log("Initializing StateManager...");
         state.stateManager = new StateManager(state.anonControlClient, {
@@ -147,6 +154,11 @@ export async function startAnyoneProxy() {
         });
         await state.stateManager.initialize();
         console.log(`StateManager ready: ${state.stateManager.getRelays().length} relays loaded`);
+
+        const availableCountries = state.stateManager.getAvailableCountries();
+        if (availableCountries.length > 0) {
+            store.set("cachedAvailableCountries", availableCountries);
+        }
 
         // Get relay data for UI
         const relayData = await getRelayData();

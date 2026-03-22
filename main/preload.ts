@@ -229,6 +229,14 @@ const handler = {
   editProxyRule: (rule: ProxyRule) => ipcRenderer.invoke("edit-proxy-rule", rule),
   deleteProxyRule: (ruleId: string) => ipcRenderer.invoke("delete-proxy-rule", ruleId),
   getProxyRules: () => ipcRenderer.invoke("get-proxy-rules"),
+  getAvailableCountries: (): Promise<string[]> => ipcRenderer.invoke("get-available-countries"),
+  getGlobalExitCountry: (): Promise<string | null> => ipcRenderer.invoke("get-global-exit-country"),
+  setGlobalExitCountry: (country: string | null) => ipcRenderer.invoke("set-global-exit-country", country),
+  onGlobalExitCountryChanged: (callback: (country: string | null) => void) => {
+    const subscription = (_event: IpcRendererEvent, country: string | null) => callback(country);
+    ipcRenderer.on("global-exit-country-changed", subscription);
+    return () => ipcRenderer.removeListener("global-exit-country-changed", subscription);
+  },
   killAnonProcess: () => ipcRenderer.invoke("kill-anon-process"),
   getShowAnimations: () => ipcRenderer.invoke("get-show-animations"),
   setShowAnimations: (showAnimations: boolean) => ipcRenderer.invoke("set-show-animations", showAnimations),

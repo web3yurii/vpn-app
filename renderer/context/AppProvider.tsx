@@ -47,6 +47,8 @@ interface AppContextType {
   appBooted: boolean;
   showAnimations: boolean;
   setShowAnimations: (showAnimations: boolean) => void;
+  globalExitCountry: string | null;
+  setGlobalExitCountry: (country: string | null) => Promise<void>;
 }
 
 interface GroupedProcessInfo {
@@ -111,6 +113,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   });
   const [proxyRules, setProxyRules] = useState<ProxyRule[]>([]);
   const [numberOfRelays, setNumberOfRelays] = useState<number>(0);
+  const [globalExitCountry, setGlobalExitCountryState] = useState<string | null>(null);
 
   const windowSizeRef = useRef(windowSize);
 
@@ -187,6 +190,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     fetchInitialData();
     if (typeof window !== "undefined" && window.ipc) {
+      window.ipc.getGlobalExitCountry().then(setGlobalExitCountryState);
+      const removeGlobalExitCountryListener = window.ipc.onGlobalExitCountryChanged(setGlobalExitCountryState);
       // Check the real IP address when the component mounts
       window.ipc.checkIP(false).then((ip) => {
         console.log(ip, "realIp");
@@ -342,6 +347,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Cleanup function
       return () => {
+        removeGlobalExitCountryListener();
         removeProxyStartedListener();
         removeProxyStoppedListener();
         removeProxyErrorListener();
@@ -455,6 +461,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(false);
   };
 
+  const setGlobalExitCountry = async (country: string | null) => {
+    await window.ipc.setGlobalExitCountry(country);
+    setGlobalExitCountryState(country);
+  };
+
   const handleDeleteProxyRule = async (ruleId: string) => {
     setIsLoading(true);
     if (!window.ipc) {
@@ -499,6 +510,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         appBooted,
         showAnimations,
         setShowAnimations,
+        globalExitCountry,
+        setGlobalExitCountry,
       }}
     >
       {children}

@@ -13,7 +13,11 @@ import {
   Textarea,
   Select,
   HStack,
-  useDisclosure,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
+  WrapItem,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -24,6 +28,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { Rule } from "./RuleBox";
+import { ALL_COUNTRIES } from "../utils/countries";
 
 interface NewRuleBoxProps {
   isOpen: boolean;
@@ -46,7 +51,17 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
   const [destinations, setDestinations] = useState(currentRule?.destinations.join("\n") || "");
   const [hops, setHops] = useState(currentRule?.hops || 3);
   const [entryCountries, setEntryCountries] = useState(currentRule?.entryCountries.join(",") || "");
-  const [exitCountries, setExitCountries] = useState(currentRule?.exitCountries.join(",") || "");
+  const [exitCountries, setExitCountries] = useState<string[]>(currentRule?.exitCountries.map(c => c.toLowerCase()) ?? []);
+  const [availableCountryCodes, setAvailableCountryCodes] = useState<string[]>([]);
+
+  useEffect(() => {
+    window.ipc.getAvailableCountries().then(setAvailableCountryCodes).catch(() => {});
+  }, []);
+
+  // If we have SDK-provided countries, restrict to those; otherwise show all world countries
+  const displayCountries = availableCountryCodes.length > 0
+    ? ALL_COUNTRIES.filter(c => availableCountryCodes.includes(c.code))
+    : ALL_COUNTRIES;
 
   useEffect(() => {
     if (currentRule) {
@@ -54,9 +69,19 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
       setDestinations(currentRule.destinations.join("\n"));
       setHops(currentRule.hops);
       setEntryCountries(currentRule.entryCountries.join(","));
-      setExitCountries(currentRule.exitCountries.map(c => c.toUpperCase()).join(","));
+      setExitCountries(currentRule.exitCountries.map(c => c.toLowerCase()));
     }
   }, [currentRule]);
+
+  const handleAddExitCountry = (code: string) => {
+    if (code && !exitCountries.includes(code)) {
+      setExitCountries([...exitCountries, code]);
+    }
+  };
+
+  const handleRemoveExitCountry = (code: string) => {
+    setExitCountries(exitCountries.filter(c => c !== code));
+  };
 
   const handleSubmit = () => {
     if (currentRule && onEditRule) {
@@ -66,7 +91,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
         destinations: destinations.split("\n").filter(d => d.trim() !== ""),
         hops,
         entryCountries: entryCountries.split(",").map(c => c.trim()).filter(c => c !== ""),
-        exitCountries: exitCountries.split(",").map(c => c.trim()).filter(c => c !== ""),
+        exitCountries,
       });
     } else if (onAddRule) {
       onAddRule({
@@ -74,7 +99,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
         destinations: destinations.split("\n").filter(d => d.trim() !== ""),
         hops,
         entryCountries: entryCountries.split(",").map(c => c.trim()).filter(c => c !== ""),
-        exitCountries: exitCountries.split(",").map(c => c.trim()).filter(c => c !== ""),
+        exitCountries,
       });
     }
     handleClose();
@@ -85,7 +110,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
     setDestinations("");
     setHops(3);
     setEntryCountries("");
-    setExitCountries("");
+    setExitCountries([]);
     onClose();
   };
 
@@ -176,11 +201,14 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
             </FormControl> */}
 
             <FormControl>
-              <FormLabel color="gray.300">Exit Countries (comma-separated)</FormLabel>
-              <Input
-                value={exitCountries}
-                onChange={(e) => setExitCountries(e.target.value)}
-                placeholder="FR, DE, NL"
+              <FormLabel color="gray.300">
+                Exit Countries
+                {availableCountryCodes.length === 0 && (
+                  <Box as="span" fontSize="xs" color="gray.500" ml={2}>(all countries — start proxy to see available)</Box>
+                )}
+              </FormLabel>
+              <Select
+                placeholder="Select a country..."
                 bg="rgba(24, 24, 27, 0.70)"
                 border="1px solid"
                 borderColor="gray.600"
@@ -188,7 +216,41 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
                   borderColor: headerBgColor,
                   boxShadow: `0 0 0 1px ${headerBgColor}`,
                 }}
-              />
+                value=""
+                onChange={(e) => {
+                  handleAddExitCountry(e.target.value);
+                  e.target.value = "";
+                }}
+              >
+                {displayCountries
+                  .filter(c => !exitCountries.includes(c.code))
+                  .map(c => (
+                    <option key={c.code} value={c.code} style={{ background: "#18181b" }}>
+                      {c.code.toUpperCase()} — {c.name}
+                    </option>
+                  ))}
+              </Select>
+              {exitCountries.length > 0 && (
+                <Wrap mt={2} spacing={2}>
+                  {exitCountries.map(code => {
+                    const country = ALL_COUNTRIES.find(c => c.code === code);
+                    return (
+                      <WrapItem key={code}>
+                        <Tag
+                          size="md"
+                          borderRadius="full"
+                          variant="solid"
+                          bg="rgba(255,255,255,0.12)"
+                          color="white"
+                        >
+                          <TagLabel>{code.toUpperCase()}{country ? ` — ${country.name}` : ""}</TagLabel>
+                          <TagCloseButton onClick={() => handleRemoveExitCountry(code)} />
+                        </Tag>
+                      </WrapItem>
+                    );
+                  })}
+                </Wrap>
+              )}
             </FormControl>
           </VStack>
         </ModalBody>
