@@ -6,10 +6,7 @@ export default class Document extends NextDocument {
     return (
       <Html>
         <Head>
-          <link
-            href="https://fonts.googleapis.com/css2?family=Mona+Sans:ital,wght@0,200..900;1,200..900&display=swap"
-            rel="stylesheet"
-          />
+          <link rel="stylesheet" href="/fonts/mona-sans.css" />
         </Head>
         <body>
           {/* Make Color mode to persists when you refresh the page. */}

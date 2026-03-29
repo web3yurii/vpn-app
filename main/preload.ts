@@ -144,6 +144,14 @@ const handler = {
     };
   },
 
+  onCircuitPathUpdated(callback: (data: { circuitId: number; target: string; hopCountries: string[]; hopCoordinates: Array<{ latitude: number; longitude: number } | null> }) => void) {
+    const subscription = (_event: IpcRendererEvent, data: { circuitId: number; target: string; hopCountries: string[] }) => callback(data);
+    ipcRenderer.on("circuit-path-updated", subscription);
+    return () => {
+      ipcRenderer.removeListener("circuit-path-updated", subscription);
+    };
+  },
+
   // window-resize
   onWindowResize: (callback: (height: number, width: number) => void) => {
     const subscription = (_event: IpcRendererEvent, height: number, width: number) => {
@@ -181,8 +189,7 @@ const handler = {
   expandApp: () => ipcRenderer.invoke("expand-app"),
   minimizeExpandedApp: () => ipcRenderer.invoke("minimize-expanded-app"),
   getGeolocation: (ip: string) => ipcRenderer.invoke("get-geolocation", ip),
-  getGeolocationByCoords: (lat: number, lon: number) => ipcRenderer.invoke("get-geolocation-by-coords", lat, lon),
-  getIcon: (iconPath) => ipcRenderer.invoke("get-icon", iconPath),
+getIcon: (iconPath) => ipcRenderer.invoke("get-icon", iconPath),
   getRelayData: () => ipcRenderer.invoke("get-relay-data"),
   getRealIP: () => ipcRenderer.invoke("get-real-ip"),
   getProxyIP: () => ipcRenderer.invoke("get-proxy-ip"),
@@ -228,6 +235,8 @@ const handler = {
   addNewProxyRule: (rule: Omit<ProxyRule, 'id'>) => ipcRenderer.invoke("add-proxy-rule", rule),
   editProxyRule: (rule: ProxyRule) => ipcRenderer.invoke("edit-proxy-rule", rule),
   deleteProxyRule: (ruleId: string) => ipcRenderer.invoke("delete-proxy-rule", ruleId),
+  toggleProxyRule: (ruleId: string) => ipcRenderer.invoke("toggle-proxy-rule", ruleId),
+  toggleAllProxyRules: (enabled: boolean) => ipcRenderer.invoke("toggle-all-proxy-rules", enabled),
   getProxyRules: () => ipcRenderer.invoke("get-proxy-rules"),
   getAvailableCountries: (): Promise<string[]> => ipcRenderer.invoke("get-available-countries"),
   getGlobalExitCountry: (): Promise<string | null> => ipcRenderer.invoke("get-global-exit-country"),

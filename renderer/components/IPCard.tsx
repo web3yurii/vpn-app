@@ -14,6 +14,7 @@ import {
   VStack,
   HStack,
   Select,
+  Switch,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { TbCopy, TbCopyCheck } from "react-icons/tb";
@@ -46,6 +47,7 @@ const mockRules: Rule[] = [
     hops: 3,
     entryCountries: ['All'],
     exitCountries: ['All'],
+    enabled: true,
   },
   {
     id: '2',
@@ -54,6 +56,7 @@ const mockRules: Rule[] = [
     hops: 2,
     entryCountries: ['US', 'UK', 'CA'],
     exitCountries: ['FR', 'DE', 'NL'],
+    enabled: true,
   },
 ];
 
@@ -77,6 +80,8 @@ const IPCard: React.FC<IPCardProps> = ({
     handleAddProxyRule,
     handleDeleteProxyRule,
     handleEditProxyRule,
+    handleToggleProxyRule,
+    handleToggleAllProxyRules,
   } = useAppContext();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { 
@@ -313,6 +318,23 @@ const IPCard: React.FC<IPCardProps> = ({
                 </Text>
               )}
 
+              {proxyRules.length > 0 && (
+                <Flex justify="space-between" align="center" px={1}>
+                  <Text fontSize="sm" color="gray.400">All Rules</Text>
+                  <HStack spacing={2}>
+                    <Text fontSize="xs" color="gray.500">
+                      {proxyRules.every(r => r.enabled === false) ? 'All disabled' : proxyRules.every(r => r.enabled !== false) ? 'All enabled' : 'Mixed'}
+                    </Text>
+                    <Switch
+                      size="sm"
+                      colorScheme="green"
+                      isChecked={proxyRules.some(r => r.enabled !== false)}
+                      onChange={(e) => handleToggleAllProxyRules(e.target.checked)}
+                    />
+                  </HStack>
+                </Flex>
+              )}
+
               {proxyRules.map((rule) => (
                 <RuleBox
                   key={rule.id}
@@ -320,6 +342,7 @@ const IPCard: React.FC<IPCardProps> = ({
                   headerBgColor={headerBgColor}
                   deleteProxyRule={handleDeleteProxyRule}
                   editProxyRule={handleEditRule}
+                  toggleProxyRule={handleToggleProxyRule}
                   proxyRunning={proxyRunning}
                 />
               ))}

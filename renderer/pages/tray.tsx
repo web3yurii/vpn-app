@@ -46,6 +46,8 @@ export default function TrayPage() {
     proxyLocation,
     connectionTime,
     numberOfRelays,
+    circuitHopCountries,
+    circuitHopCoordinates,
   } = useAppContext();
 
   const CloseApp = async () => {
@@ -105,6 +107,8 @@ export default function TrayPage() {
             rotating={true}
             enableOrbitControls={false}
             initialZoom={3.7}
+            circuitHopCountries={circuitHopCountries}
+            circuitHopCoordinates={circuitHopCoordinates}
           />
         </Button>
         <ProxyStatus
@@ -122,6 +126,7 @@ export default function TrayPage() {
           handleStartProxy={handleStartProxy}
           handleStopProxy={handleStopProxy}
           numberOfRelays={numberOfRelays}
+          circuitHopCountries={circuitHopCountries}
         />
         <ExitButton
           bgColor={bgColor}

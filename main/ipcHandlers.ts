@@ -9,7 +9,6 @@ import { startAnyoneProxy, stopAnyoneProxy } from "./proxy";
 import {
   checkIP,
   getGeolocation,
-  getGeolocationByCoords,
   getIcon,
 } from "./utils";
 import {
@@ -186,13 +185,6 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
     return await getGeolocation(ip);
   });
 
-  ipcMain.handle(
-    "get-geolocation-by-coords",
-    async (_event, lat: number, lon: number) => {
-      return await getGeolocationByCoords(lat, lon);
-    }
-  );
-
   // Icon
   ipcMain.handle("get-icon", async (_event, iconPath: string) => {
     return await getIcon(iconPath);
@@ -210,7 +202,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle("add-proxy-rule", async (_event, rule: Omit<ProxyRule, 'id'>) => {
     const newRule = {
       ...rule,
-      id: crypto.randomUUID()
+      id: crypto.randomUUID(),
+      enabled: true,
     };
     const currentRules = store.get("proxyRules", []) as ProxyRule[];
     store.set("proxyRules", [...currentRules, newRule]);
@@ -230,6 +223,22 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
     const updatedRules = currentRules.map(r => 
       r.id === rule.id ? rule : r
     );
+    store.set("proxyRules", updatedRules);
+    state.mainWindow?.webContents.send("proxy-rules-updated", updatedRules);
+  });
+
+  ipcMain.handle("toggle-proxy-rule", async (_event, ruleId: string) => {
+    const currentRules = store.get("proxyRules", []) as ProxyRule[];
+    const updatedRules = currentRules.map(r =>
+      r.id === ruleId ? { ...r, enabled: r.enabled === false ? true : false } : r
+    );
+    store.set("proxyRules", updatedRules);
+    state.mainWindow?.webContents.send("proxy-rules-updated", updatedRules);
+  });
+
+  ipcMain.handle("toggle-all-proxy-rules", async (_event, enabled: boolean) => {
+    const currentRules = store.get("proxyRules", []) as ProxyRule[];
+    const updatedRules = currentRules.map(r => ({ ...r, enabled }));
     store.set("proxyRules", updatedRules);
     state.mainWindow?.webContents.send("proxy-rules-updated", updatedRules);
   });

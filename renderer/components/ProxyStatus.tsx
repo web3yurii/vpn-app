@@ -31,6 +31,7 @@ interface ProxyStatusProps {
   handleStartProxy: () => void;
   handleStopProxy: () => void;
   numberOfRelays: number;
+  circuitHopCountries: string[];
 }
 
 const formatTime = (seconds: number): string => {
@@ -59,6 +60,7 @@ const ProxyStatus: React.FC<ProxyStatusProps> = ({
   handleStopProxy,
   showCountries,
   numberOfRelays,
+  circuitHopCountries,
 }) => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
@@ -223,9 +225,7 @@ const ProxyStatus: React.FC<ProxyStatusProps> = ({
         >
           {/* {!expanded && ( */}
           <MinimizedMapComponent
-            realLocation={realLocation}
-            relayLocation={relayLocation}
-            proxyLocation={proxyLocation}
+            circuitHopCountries={circuitHopCountries}
             numberOfRelays={numberOfRelays}
           />
           {/* )} */}

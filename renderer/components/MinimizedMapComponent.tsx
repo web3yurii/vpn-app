@@ -2,71 +2,51 @@
 import React from "react";
 import { Box, Flex, Text } from "@chakra-ui/react";
 
-interface LocationData {
-  country: string;
-  countryCode: string;
-}
-
 interface MinimizedMapComponentProps {
-  realLocation: LocationData;
-  relayLocation: LocationData;
-  proxyLocation: LocationData;
+  circuitHopCountries: string[];
   numberOfRelays: number;
 }
 
-// Function to convert country code to emoji flag
 const countryCodeToEmoji = (countryCode: string) => {
-  {
-    if (!countryCode) return "";
-    return countryCode
-      ?.toUpperCase()
-      ?.replace(/./g, (char) =>
-        String.fromCodePoint(127397 + char.charCodeAt(0))
-      );
-  }
+  if (!countryCode || countryCode === '??') return "🌐";
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, (char) =>
+      String.fromCodePoint(127397 + char.charCodeAt(0))
+    );
 };
 
 const MinimizedMapComponent: React.FC<MinimizedMapComponentProps> = ({
-  realLocation,
-  relayLocation,
-  proxyLocation,
+  circuitHopCountries,
   numberOfRelays,
 }) => {
+  const hops = circuitHopCountries.length > 0 ? circuitHopCountries : null;
+
   return (
     <Box>
-      <Flex justifyContent="center" alignItems="center">
-        {/* Real IP Country Emoji Flag */}
-        <Box textAlign="center" mx={2} borderRadius="6px">
-          <Text fontSize="2xl">
-            {realLocation?.countryCode
-              ? countryCodeToEmoji(realLocation.countryCode)
-              : "🌐"}
-          </Text>
-        </Box>
-
-        {/* Relay IP Country Emoji Flag */}
-
-        <Box textAlign="center" mx={2} borderRadius="6px">
-          <Text fontSize="2xl">
-            {relayLocation?.countryCode
-              ? countryCodeToEmoji(relayLocation.countryCode)
-              : "🌐"}
-          </Text>
-        </Box>
-
-        {/* Proxy IP Country Emoji Flag */}
-        <Box textAlign="center" mx={2} borderRadius="6px">
-          <Text fontSize="2xl">
-            {proxyLocation?.countryCode
-              ? countryCodeToEmoji(proxyLocation.countryCode)
-              : "🌐"}
-          </Text>
-        </Box>
+      <Flex justifyContent="center" alignItems="center" gap={1} flexWrap="wrap">
+        {hops ? (
+          hops.map((country, i) => (
+            <React.Fragment key={i}>
+              <Text fontSize="2xl">{countryCodeToEmoji(country)}</Text>
+              {i < hops.length - 1 && (
+                <Text fontSize="xs" color="gray.500">→</Text>
+              )}
+            </React.Fragment>
+          ))
+        ) : (
+          <>
+            <Text fontSize="2xl">🌐</Text>
+            <Text fontSize="xs" color="gray.500">→</Text>
+            <Text fontSize="2xl">🌐</Text>
+          </>
+        )}
       </Flex>
-      {/* //numberOfRelays */}
-      <Text textAlign="center" fontSize="xs" color="#fff">
-        {numberOfRelays - 3} More Circuits
-      </Text>
+      {numberOfRelays > 0 && (
+        <Text textAlign="center" fontSize="xs" color="gray.400" mt={1}>
+          {numberOfRelays} relay{numberOfRelays !== 1 ? "s" : ""} available
+        </Text>
+      )}
     </Box>
   );
 };

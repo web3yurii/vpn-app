@@ -362,24 +362,20 @@ const Globe = ({ points, orbitRef }: { points: Location[]; orbitRef: any }) => {
   }, [points]);
 
   useEffect(() => {
-    if (points.length === 3) {
-      const bridges = [
-        <Bridge
-          start={{ lat: points[0].lat, lon: points[0].lon }}
-          end={{ lat: points[1].lat, lon: points[1].lon }}
-          radius={2}
-          amplitude={0.2}
-          key={`bridge-${points[0].name}-${points[1].name}`}
-        />,
-        <Bridge
-          start={{ lat: points[1].lat, lon: points[1].lon }}
-          end={{ lat: points[2].lat, lon: points[2].lon }}
-          radius={2}
-          amplitude={0.2}
-          key={`bridge-${points[1].name}-${points[2].name}`}
-        />,
-      ];
-      setBridges(bridges);
+    if (points.length >= 2) {
+      const newBridges: JSX.Element[] = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        newBridges.push(
+          <Bridge
+            start={{ lat: points[i].lat, lon: points[i].lon }}
+            end={{ lat: points[i + 1].lat, lon: points[i + 1].lon }}
+            radius={2}
+            amplitude={0.2}
+            key={`bridge-${i}-${points[i].name}-${points[i + 1].name}`}
+          />
+        );
+      }
+      setBridges(newBridges);
     } else {
       setBridges([]);
     }
@@ -402,6 +398,8 @@ export default function GlobeComponent({
   rotating,
   enableOrbitControls,
   initialZoom,
+  circuitHopCountries,
+  circuitHopCoordinates,
 }: {
   realLocation: any;
   proxyLocation: any;
@@ -409,12 +407,35 @@ export default function GlobeComponent({
   rotating: boolean;
   enableOrbitControls: boolean;
   initialZoom: number;
+  circuitHopCountries?: string[];
+  circuitHopCoordinates?: Array<{ latitude: number; longitude: number } | null>;
 }) {
   const [points, setPoints] = useState<Location[]>([]);
 
   useEffect(() => {
-    if (realLocation && proxyLocation && relayLocation) {
-      const newPoints = [
+    const liveHops = circuitHopCoordinates?.filter(Boolean) ?? [];
+    const hasLiveCircuit = liveHops.length > 0 && realLocation;
+
+    if (hasLiveCircuit) {
+      const newPoints: Location[] = [
+        {
+          lat: realLocation.latitude,
+          lon: realLocation.longitude,
+          name: realLocation.countryCode?.toUpperCase(),
+        },
+      ];
+      circuitHopCoordinates!.forEach((coord, i) => {
+        if (coord) {
+          newPoints.push({
+            lat: coord.latitude,
+            lon: coord.longitude,
+            name: circuitHopCountries?.[i] ?? '??',
+          });
+        }
+      });
+      setPoints(newPoints);
+    } else if (realLocation && proxyLocation && relayLocation) {
+      setPoints([
         {
           lat: realLocation.latitude,
           lon: realLocation.longitude,
@@ -430,15 +451,11 @@ export default function GlobeComponent({
           lon: proxyLocation.longitude,
           name: proxyLocation.countryCode?.toUpperCase(),
         },
-      ];
-
-      if (newPoints != points) {
-        setPoints(newPoints);
-      }
+      ]);
     } else {
       setPoints([]);
     }
-  }, [realLocation, proxyLocation, relayLocation]);
+  }, [realLocation, proxyLocation, relayLocation, circuitHopCountries, circuitHopCoordinates]);
 
   const orbitControlsRef = useRef<any>(null);
 

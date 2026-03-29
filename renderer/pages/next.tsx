@@ -13,10 +13,6 @@ export default function NextPage() {
     <React.Fragment>
       <Head>
         <title>Next - Nextron (with-chakra-ui)</title>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-          rel="stylesheet"
-        />
       </Head>
       <Container minHeight="100vh">
         <DarkModeSwitch />

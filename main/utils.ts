@@ -51,7 +51,6 @@ export async function getFingerPrintData(): Promise<Map<string, FingerPrintData>
 }
 
 export async function checkIP(useProxy: boolean): Promise<string | null> {
-  console.log("Checking IP...");
   const url = "https://api.ipify.org?format=json";
   const MAX_ATTEMPTS = 3;
 
@@ -61,7 +60,6 @@ export async function checkIP(useProxy: boolean): Promise<string | null> {
         try {
           const response = await state.anonSocksClient.get(url);
           if (response.data && response.data.ip) {
-            console.log(`IP via proxy: ${response.data.ip}`);
             return response.data.ip;
           }
         } catch (error: any) {
@@ -137,54 +135,6 @@ export async function getGeolocation(ip: string) {
   }
 }
 
-export async function getGeolocationByCoords(lat: number, lon: number) {
-  if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) {
-    console.error("Invalid coordinates for reverse geocoding:", { lat, lon });
-    return null;
-  }
-
-  const MAX_ATTEMPTS = 3;
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            "User-Agent": "AnyoneVPN/1.0 (https://anyone.io)",
-          },
-        }
-      );
-      if (!response.ok) throw new Error(`openstreetmap returned ${response.status}`);
-
-      const data = await response.json();
-
-      return {
-        latitude: lat,
-        longitude: lon,
-        city: data.address?.city || data.address?.town || data.address?.village,
-        region: data.address?.state,
-        country: data.address?.country,
-        countryCode: data.address?.country_code,
-      };
-    } catch (error) {
-      console.error(`Attempt ${attempt}: Error fetching geolocation by coordinates:`, error);
-      if (attempt < MAX_ATTEMPTS) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-    }
-  }
-
-  // Fallback: return coords with no place names rather than null
-  return {
-    latitude: lat,
-    longitude: lon,
-    city: null,
-    region: null,
-    country: null,
-    countryCode: null,
-  };
-}
 
 export async function getIcon(iconPath: string) {
   try {

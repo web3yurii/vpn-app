@@ -49,7 +49,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
 }) => {
   const [title, setTitle] = useState(currentRule?.title || "");
   const [destinations, setDestinations] = useState(currentRule?.destinations.join("\n") || "");
-  const [hops, setHops] = useState(currentRule?.hops || 3);
+  const [hops, setHops] = useState(currentRule?.hops || 2);
   const [entryCountries, setEntryCountries] = useState(currentRule?.entryCountries.join(",") || "");
   const [exitCountries, setExitCountries] = useState<string[]>(currentRule?.exitCountries.map(c => c.toLowerCase()) ?? []);
   const [availableCountryCodes, setAvailableCountryCodes] = useState<string[]>([]);
@@ -108,7 +108,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
   const handleClose = () => {
     setTitle("");
     setDestinations("");
-    setHops(3);
+    setHops(2);
     setEntryCountries("");
     setExitCountries([]);
     onClose();

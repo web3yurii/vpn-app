@@ -59,6 +59,8 @@ function ExpandedHomePage() {
     showAnimations,
     globalExitCountry,
     setGlobalExitCountry,
+    circuitHopCountries,
+    circuitHopCoordinates,
   } = useAppContext();
 
   const bgColor = useColorModeValue("gray.100", "#18181B");
@@ -263,6 +265,7 @@ function ExpandedHomePage() {
                       handleStartProxy={handleStartProxy}
                       handleStopProxy={handleStopProxy}
                       numberOfRelays={numberOfRelays}
+                      circuitHopCountries={circuitHopCountries}
                     />
                   </Flex>
                 </Stack>
@@ -295,6 +298,8 @@ function ExpandedHomePage() {
                     rotating={false}
                     enableOrbitControls={true}
                     initialZoom={5}
+                    circuitHopCountries={circuitHopCountries}
+                    circuitHopCoordinates={circuitHopCoordinates}
                   />
                   </Box>
                 </Flex>

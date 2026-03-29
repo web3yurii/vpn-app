@@ -9,7 +9,7 @@ import {
     VPNManager,
     VPNManagerEvent,
 } from "@anyone-protocol/anyone-client";
-import { VPNTarget } from "@anyone-protocol/anyone-client/out/models";
+import { EventType, StreamEvent, VPNTarget } from "@anyone-protocol/anyone-client/out/models";
 import { stopProxy as stopPrivoxy } from "./utils/proxy";
 import { setProxySettings } from "./systemProxy";
 import { ProxyRuleConfig, RelayData, state } from "./state";
@@ -26,6 +26,7 @@ export interface ProxyRule {
     hops: number;
     entryCountries: string[];
     exitCountries: string[];
+    enabled?: boolean;
 }
 
 export async function startAnyoneProxy() {
@@ -192,6 +193,9 @@ export async function startAnyoneProxy() {
             state.stateManager.resumeBackgroundResolution();
         }
 
+        // Listen to all STREAM events to update circuit flags for any traffic
+        setupStreamCircuitListener();
+
         state.mainWindow?.webContents.send("proxy-started");
         state.tray?.window?.webContents.send("proxy-started");
         state.isProxyRunning = true;
@@ -240,6 +244,7 @@ function convertProxyRulesToVPNTargets(): VPNTarget[] {
     const vpnTargets: VPNTarget[] = [];
 
     for (const rule of proxyRules) {
+        if (rule.enabled === false) continue;
         for (const destination of rule.destinations) {
             vpnTargets.push({
                 address: destination,
@@ -254,11 +259,19 @@ function convertProxyRulesToVPNTargets(): VPNTarget[] {
     return vpnTargets;
 }
 
+interface CircuitData {
+    countries: string[];
+    coordinates: Array<{ latitude: number; longitude: number } | null>;
+}
+const circuitPathMap = new Map<number, CircuitData>(); // circuitId → hop data
+let lastSentCircuitId: number | null = null;
+
 function setupVPNManagerListeners() {
     if (!state.vpnManager) return;
+    circuitPathMap.clear();
+    lastSentCircuitId = null;
 
     state.vpnManager.on(VPNManagerEvent.TARGET_READY, (info) => {
-        console.log(`[VPN] Target ${info.target} ready: circuit ${info.circuitId} (${info.country})`);
         state.mainWindow?.webContents.send("circuit-ready", {
             target: info.target,
             circuitId: info.circuitId,
@@ -274,7 +287,6 @@ function setupVPNManagerListeners() {
     });
 
     state.vpnManager.on(VPNManagerEvent.TARGET_DEGRADED, (info) => {
-        console.log(`[VPN] Target ${info.target} DEGRADED: ${info.currentCircuits}/${info.minCircuits} circuits`);
         state.mainWindow?.webContents.send("circuit-failure", {
             target: info.target,
             currentCircuits: info.currentCircuits,
@@ -288,10 +300,64 @@ function setupVPNManagerListeners() {
             timestamp: new Date().toISOString()
         });
     });
+}
 
-    state.vpnManager.on(VPNManagerEvent.STREAM_ROUTED, (info) => {
-        console.log(`[VPN] Stream ${info.streamId} routed to circuit ${info.circuitId} for ${info.target}`);
-    });
+async function setupStreamCircuitListener() {
+    if (!state.anonControlClient) return;
+
+    const resolvingCircuits = new Set<number>(); // prevent duplicate async resolutions
+
+    const streamHandler = async (event: StreamEvent) => {
+        if (event.status !== 'SUCCEEDED' || !event.circId) return;
+        const circId = event.circId;
+        if (circId === lastSentCircuitId) return;
+
+        // Resolve countries for this circuit if not already cached
+        if (!circuitPathMap.has(circId) && !resolvingCircuits.has(circId)) {
+            resolvingCircuits.add(circId);
+            try {
+                const circuitStatus = await state.anonControlClient.getCircuit(circId);
+                if (circuitStatus?.relays?.length) {
+                    const hopCountries: string[] = [];
+                    const hopCoordinates: Array<{ latitude: number; longitude: number } | null> = [];
+                    for (const relay of circuitStatus.relays) {
+                        try {
+                            const relayInfo = await state.anonControlClient.getRelayInfo(relay.fingerprint);
+                            const country = relayInfo?.ip
+                                ? await state.anonControlClient.getCountry(relayInfo.ip)
+                                : null;
+                            hopCountries.push(country?.toUpperCase() ?? '??');
+                        } catch {
+                            hopCountries.push('??');
+                        }
+                        const coordData = state.fingerprintData?.get(relay.fingerprint);
+                        hopCoordinates.push(coordData?.coordinates ?? null);
+                    }
+                    circuitPathMap.set(circId, { countries: hopCountries, coordinates: hopCoordinates });
+                }
+            } catch {
+                // circuit may have closed already
+            } finally {
+                resolvingCircuits.delete(circId);
+            }
+        }
+
+        const circuitData = circuitPathMap.get(circId);
+        if (!circuitData?.countries.length) return;
+        if (circId === lastSentCircuitId) return; // recheck after await
+
+        lastSentCircuitId = circId;
+        const payload = {
+            circuitId: circId,
+            target: event.target ?? '',
+            hopCountries: circuitData.countries,
+            hopCoordinates: circuitData.coordinates,
+        };
+        state.mainWindow?.webContents.send("circuit-path-updated", payload);
+        state.tray?.window?.webContents.send("circuit-path-updated", payload);
+    };
+
+    await state.anonControlClient.addEventListener(streamHandler, EventType.STREAM);
 }
 
 export async function getRelayData(): Promise<RelayData | null> {
