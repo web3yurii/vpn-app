@@ -1,5 +1,5 @@
 // src/main/systemProxy.ts
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -12,6 +12,32 @@ async function getNetworkInterfaces(): Promise<string[]> {
     console.error('Error getting network interfaces:', error);
     return ['Wi-Fi']; // fallback to Wi-Fi if command fails
   }
+}
+
+// Synchronous proxy clear — used in SIGINT/SIGTERM handlers where async ops
+// cannot be awaited because the event loop is already tearing down.
+export function clearProxySync() {
+  const platform = process.platform;
+  try {
+    if (platform === "darwin") {
+      let interfaces: string[] = [];
+      try {
+        const stdout = execSync(
+          'networksetup -listnetworkserviceorder | grep -B1 "Hardware Port: \\(Wi-Fi\\|.*LAN\\)" | grep "^([0-9*])" | sed \'s/^([0-9*]*) //\''
+        ).toString().trim();
+        interfaces = stdout.split('\n').filter(i => i.trim().length > 0);
+      } catch (_) {}
+      if (interfaces.length === 0) interfaces = ['Wi-Fi'];
+      for (const iface of interfaces) {
+        try { execSync(`networksetup -setsocksfirewallproxystate "${iface.trim()}" off`); } catch (_) {}
+      }
+    } else if (platform === "win32") {
+      const reg = `"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"`;
+      try { execSync(`reg add ${reg} /v ProxyEnable /t REG_DWORD /d 0 /f`); } catch (_) {}
+    } else if (platform === "linux") {
+      try { execSync("gsettings set org.gnome.system.proxy mode 'none'"); } catch (_) {}
+    }
+  } catch (_) {}
 }
 
 export async function setProxySettings(enable: boolean, proxyPort: number) {

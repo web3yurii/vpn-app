@@ -1,3 +1,16 @@
+/**
+ * Convert an ISO 3166-1 alpha-2 country code to a flag emoji.
+ * Works by mapping each letter to a Unicode Regional Indicator Symbol.
+ * e.g. "us" → 🇺🇸
+ */
+export function countryFlag(code: string): string {
+  return code
+    .toUpperCase()
+    .split("")
+    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
+    .join("");
+}
+
 export const ALL_COUNTRIES: { code: string; name: string }[] = [
   { code: "ad", name: "Andorra" },
   { code: "ae", name: "United Arab Emirates" },

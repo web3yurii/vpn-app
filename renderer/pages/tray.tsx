@@ -71,7 +71,7 @@ export default function TrayPage() {
         backgroundImage="radial-gradient(#2f4e5054 0.8px, transparent 0)"
         backgroundSize="12px 12px"
       >
-        {proxyRunning ? (
+        {proxyRunning && (
           <IPCardTray
             label="Proxy IP"
             value={proxyIP || "-"}
@@ -79,15 +79,6 @@ export default function TrayPage() {
             menuTextColor={menuTextColor}
             headerBgColor={ipcCardText}
             status="Anyone"
-          />
-        ) : (
-          <IPCardTray
-            label="Local IP"
-            value={realIP || "Loading..."}
-            bgColor={bgColor}
-            menuTextColor={menuTextColor}
-            headerBgColor={ipcCardText}
-            status="Not Anyone"
           />
         )}
         <Button

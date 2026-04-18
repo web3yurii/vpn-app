@@ -29,6 +29,13 @@ process.on('unhandledRejection', (reason: any) => {
   );
 });
 
+// SIGINT/SIGTERM → call app.quit() so Electron's before-quit event fires.
+// before-quit uses event.preventDefault() to hold the quit open while async
+// cleanup runs (proxy settings + anon process), then calls app.quit() again.
+let isCleaningUp = false;
+process.on('SIGINT', () => { if (!isCleaningUp) app.quit(); });
+process.on('SIGTERM', () => { if (!isCleaningUp) app.quit(); });
+
 // ---- SINGLE INSTANCE LOCK ----
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -54,7 +61,7 @@ if (!gotTheLock) {
     if (process.platform === "darwin") {
       app.setAboutPanelOptions({
         applicationName: "Anyone VPN",
-        applicationVersion: "1.0.0",
+        applicationVersion: "1.0.2",
         copyright: "© 2023 Anyone VPN Inc.",
         credits: "Developed by Anyone VPN Team",
         iconPath: path.join(app.getAppPath(), "resources", "icon.png"),
@@ -85,6 +92,11 @@ if (!gotTheLock) {
     // Initialize shared state
     initializeState();
 
+    // Clear any lingering system proxy settings from a previous session that
+    // crashed or was force-quit (clean exits are handled by before-quit/quit).
+    // The port value is irrelevant for the "off" operation on all platforms.
+    await setProxySettings(false, state.proxyPort);
+
     const mainWindow = createMainWindow();
     mainWindowRef = mainWindow;
     // createTray(mainWindow);
@@ -102,23 +114,20 @@ if (!gotTheLock) {
       console.log(`Menu bar is now ${menuBarVisible ? "visible" : "hidden"}`);
     });
 
-    app.on("quit", async () => {
-      if (state.anon) {
+    // Graceful shutdown: prevent the quit, clean up proxy + anon process,
+    // then call app.quit() again (isCleaningUp guard prevents infinite loop).
+    app.on("before-quit", async (event) => {
+      if (isCleaningUp) return;
+      isCleaningUp = true;
+      event.preventDefault();
+      try {
         await setProxySettings(false, state.proxyPort);
-        state.isQuitting = true;
-        await stopAnyoneProxy();
-      }
-      console.log("All windows closed - quitting app");
+        if (state.anon) {
+          state.isQuitting = true;
+          await stopAnyoneProxy();
+        }
+      } catch (_) {}
       app.quit();
-    });
-
-    // Handle application events
-    app.on("before-quit", async () => {
-      await setProxySettings(false, state.proxyPort);
-      if (state.anon) {
-        state.isQuitting = true;
-        await stopAnyoneProxy();
-      }
     });
 
     app.on("window-all-closed", async () => {

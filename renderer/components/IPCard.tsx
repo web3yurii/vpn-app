@@ -242,31 +242,6 @@ const IPCard: React.FC<IPCardProps> = ({
             bg={"rgba(24, 24, 27, 0.90"}
             boxShadow={"0px 1px 0px 0px rgba(255, 255, 255, 0.08) inset"}
           >
-            <Flex
-              mb={2}
-              justifyContent={"space-between"}
-              alignItems={"center"}
-              position={"relative"}
-              marginBottom="5px"
-            >
-              <Box
-                position="absolute"
-                bottom={0}
-                left={0}
-                width="100%"
-                height="1px"
-                background="linear-gradient(to right, rgba(22, 81, 103, 0), rgba(22, 81, 103, 0.8), rgba(22, 81, 103, 0))"
-              />
-              <Text
-                fontWeight="400"
-                fontSize="14px"
-                color={headerBgColor}
-                mb={2}
-              >
-                Real IP:
-              </Text>
-              <Text fontSize="sm">{realIP}</Text>
-            </Flex>
             <SettingsComponent headerBgColor={headerBgColor} />
           </DrawerBody>
         </DrawerContent>

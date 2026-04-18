@@ -1,6 +1,6 @@
 import { Box, Select, Text, Flex } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
-import { ALL_COUNTRIES } from "../utils/countries";
+import { ALL_COUNTRIES, countryFlag } from "../utils/countries";
 
 interface Props {
   globalExitCountry: string | null;
@@ -57,7 +57,7 @@ const GlobalExitCountrySelector: React.FC<Props> = ({
         <option value="" style={{ background: "#18181b" }}>Any country</option>
         {displayCountries.map(c => (
           <option key={c.code} value={c.code} style={{ background: "#18181b" }}>
-            {c.code.toUpperCase()} — {c.name}
+            {countryFlag(c.code)} {c.code.toUpperCase()} — {c.name}
           </option>
         ))}
       </Select>

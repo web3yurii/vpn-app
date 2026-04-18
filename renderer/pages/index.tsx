@@ -40,6 +40,11 @@ const GlobeComponent = dynamic(
   }
 );
 
+const CircuitPathView = dynamic(
+  () => import("../components/CircuitPathView"),
+  { ssr: false }
+);
+
 function ExpandedHomePage() {
   const {
     appBooted,
@@ -165,7 +170,7 @@ function ExpandedHomePage() {
               <Box
                 p={0}
                 textAlign="center"
-                overflowY="hidden"
+                overflow="hidden"
                 h="calc(100%)"
                 border="1px solid rgba(255, 255, 255, 0.04)"
                 borderRadius="6px"
@@ -198,25 +203,14 @@ function ExpandedHomePage() {
                       height="1px"
                       background="linear-gradient(to right, rgba(22, 81, 103, 0), rgba(22, 81, 103, 0.8), rgba(22, 81, 103, 0))"
                     />
-                    {proxyRunning ? (
-                      <IPCard
-                        label="Proxy IP"
-                        value={proxyIP || "-"}
-                        bgColor={bgColor}
-                        menuTextColor={menuTextColor}
-                        headerBgColor={ipcCardText}
-                        status="Anyone"
-                      />
-                    ) : (
-                      <IPCard
-                        label="Local IP"
-                        value={realIP || "Loading..."}
-                        bgColor={bgColor}
-                        menuTextColor={menuTextColor}
-                        headerBgColor={ipcCardText}
-                        status="Not Anyone"
-                      />
-                    )}
+                    <IPCard
+                      label="Proxy IP"
+                      value={proxyRunning ? (proxyIP || "-") : "-"}
+                      bgColor={bgColor}
+                      menuTextColor={menuTextColor}
+                      headerBgColor={ipcCardText}
+                      status={proxyRunning ? "Anyone" : ""}
+                    />
 
                     {/* <IPCard
                         label="Relay IP"
@@ -272,41 +266,50 @@ function ExpandedHomePage() {
               </Box>
             </GridItem>
 
-            {/* {realLocation && proxyLocation && relayLocation && proxyRunning && ( */}
-            {showAnimations && (
-            <GridItem colSpan={1} rowSpan={1} overflowX={"visible"}>
-              <Flex
-                justifyContent="center"
-                alignItems="center"
-                position="relative"
-                h="100%"
-                w="100%"
-                overflow="hidden"
-                bg="black" // Optional: Add a background color to make centering more visible
-              >
-                <Box
-                  position="absolute"
-                  h={screenSize.height} // Fixed height
-                  w={screenSize.width * 0.8} // Fixed widthb
+            <GridItem colSpan={1} rowSpan={1} overflowX={showAnimations ? "visible" : "hidden"}>
+              {showAnimations ? (
+                <Flex
+                  justifyContent="center"
+                  alignItems="center"
+                  position="relative"
+                  h="100%"
+                  w="100%"
                   overflow="hidden"
-                  border="1px solid rgba(22, 81, 103, 0.8)" // Optional border for debugging
+                  bg="black"
                 >
-                  <GlobeComponent
-                    realLocation={realLocation}
-                    proxyLocation={proxyLocation}
-                    relayLocation={relayLocation}
-                    rotating={false}
-                    enableOrbitControls={true}
-                    initialZoom={5}
-                    circuitHopCountries={circuitHopCountries}
-                    circuitHopCoordinates={circuitHopCoordinates}
-                  />
+                  <Box
+                    position="absolute"
+                    h={screenSize.height}
+                    w={screenSize.width * 0.8}
+                    overflow="hidden"
+                    border="1px solid rgba(22, 81, 103, 0.8)"
+                  >
+                    <GlobeComponent
+                      realLocation={realLocation}
+                      proxyLocation={proxyLocation}
+                      relayLocation={relayLocation}
+                      rotating={false}
+                      enableOrbitControls={true}
+                      initialZoom={5}
+                      circuitHopCountries={circuitHopCountries}
+                      circuitHopCoordinates={circuitHopCoordinates}
+                    />
                   </Box>
                 </Flex>
-              </GridItem>
-            )}
+              ) : (
+                <Box
+                  h="100%"
+                  w="100%"
+                  bg="rgba(10, 16, 18, 0.95)"
+                  border="1px solid rgba(22, 81, 103, 0.4)"
+                  overflow="hidden"
+                >
+                  <CircuitPathView />
+                </Box>
+              )}
+            </GridItem>
 
-            {proxyLocation && (
+            {proxyLocation && showAnimations && (
               <GridItem
                 colSpan={1}
                 rowSpan={1}

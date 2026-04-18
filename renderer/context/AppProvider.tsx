@@ -26,6 +26,8 @@ interface AppContextType {
   relayLocation: LocationData | null;
   circuitHopCountries: string[];
   circuitHopCoordinates: Array<{ latitude: number; longitude: number } | null>;
+  circuitHopDetails: Array<{ fingerprint: string; nickname: string; ip: string; country: string; bandwidth: number; flags: string[] }>;
+  circuitTarget: string;
   proxyRunning: boolean;
   relayLocationData: Map<string, FingerPrintData>;
   connectionTime: number;
@@ -89,6 +91,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [relayLocation, setRelayLocation] = useState<LocationData | null>(null);
   const [circuitHopCountries, setCircuitHopCountries] = useState<string[]>([]);
   const [circuitHopCoordinates, setCircuitHopCoordinates] = useState<Array<{ latitude: number; longitude: number } | null>>([]);
+  const [circuitHopDetails, setCircuitHopDetails] = useState<Array<{ fingerprint: string; nickname: string; ip: string; country: string; bandwidth: number; flags: string[] }>>([]);
+  const [circuitTarget, setCircuitTarget] = useState<string>('');
   const [proxyRunning, setProxyRunning] = useState<boolean>(false);
   const [connectionTime, setConnectionTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -133,13 +137,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const proxyState = await window.ipc.isProxyRunning();
       setProxyRunning(proxyState);
-
-      const realIp = await window.ipc.checkIP(false);
-      console.log(realIp, "realIp");
-      setRealIP(realIp);
-      const realLoc = await window.ipc.getGeolocation(realIp);
-      setRealLocation(realLoc);
-
 
       const proxyRules = await window.ipc.getProxyRules();
       setProxyRules(proxyRules);
@@ -195,34 +192,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     if (typeof window !== "undefined" && window.ipc) {
       window.ipc.getGlobalExitCountry().then(setGlobalExitCountryState);
       const removeGlobalExitCountryListener = window.ipc.onGlobalExitCountryChanged(setGlobalExitCountryState);
-      // Check the real IP address when the component mounts
-      window.ipc.checkIP(false).then((ip) => {
-        console.log(ip, "realIp");
-        setRealIP(ip);
-        window.ipc
-          .getGeolocation(ip)
-          .then((location) => setRealLocation(location));
-      });
 
       // Set up IPC listeners
       const removeProxyStartedListener = window.ipc.onProxyStarted(() => {
         setProxyRunning(true);
         setIsLoading(false);
-        // Check IP through the proxy
-        window.ipc.checkIP(true).then((ip) => {
-          console.log(ip, "proxyIp");
-          setProxyIP(ip);
-          window.ipc
-            .getGeolocation(ip)
-            .then((location) => setProxyLocation(location))
-            .then(async () => {
-              window.ipc.getProxyPort().then((port) => {
-                setProxyPort(port);
-              });
-              await new Promise((resolve) => setTimeout(resolve, 5000));
-            });
-        });
-        // add timeout to get location
+        // Proxy IP is pushed by main process via proxy-ip-changed once ready.
+        // Update the port immediately since it's already known.
+        window.ipc.getProxyPort().then((port) => setProxyPort(port));
 
         // check relay IP
         window.ipc.getRelayData().then((relayData) => {
@@ -273,6 +250,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             console.log("Updating window size state");
             setWindowSize({ height: newHeight, width: newWidth });
           }
+
+          // Sync expand/collapse arrow with manual window resize.
+          // Minimized size is 400×700; anything meaningfully larger = expanded.
+          const MINIMIZED_WIDTH = 400;
+          const MINIMIZED_HEIGHT = 700;
+          const TOLERANCE = 50;
+          if (width > MINIMIZED_WIDTH + TOLERANCE || height > MINIMIZED_HEIGHT + TOLERANCE) {
+            setIsExpanded(true);
+          } else {
+            setIsExpanded(false);
+          }
         }
       );
 
@@ -292,6 +280,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       const removeCircuitPathListener = window.ipc.onCircuitPathUpdated((data) => {
         setCircuitHopCountries(data.hopCountries);
         setCircuitHopCoordinates(data.hopCoordinates);
+        setCircuitHopDetails(data.hopDetails ?? []);
+        setCircuitTarget(data.target ?? '');
       });
 
       // proxy port change listener
@@ -516,6 +506,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         relayLocation,
         circuitHopCountries,
         circuitHopCoordinates,
+        circuitHopDetails,
+        circuitTarget,
         proxyRunning,
         connectionTime,
         isLoading,

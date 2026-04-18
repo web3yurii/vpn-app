@@ -7,6 +7,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { countryFlag } from "../utils/countries";
 
 export interface Rule {
   id: string;
@@ -89,7 +90,7 @@ export const RuleBox: React.FC<RuleBoxProps> = ({ rule, headerBgColor, deletePro
 
         <Box>
           <Text fontSize="xs" color="gray.400">Exit Countries:</Text>
-          <Text fontSize="sm" color="white">{rule.exitCountries.map(c => c.toUpperCase()).join(', ')}</Text>
+          <Text fontSize="sm" color="white">{rule.exitCountries.map(c => `${countryFlag(c)} ${c.toUpperCase()}`).join('  ')}</Text>
         </Box>
       </VStack>
     </Box>

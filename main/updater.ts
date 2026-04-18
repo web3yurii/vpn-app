@@ -34,12 +34,6 @@ autoUpdater.on("update-downloaded", () => {
 });
 
 export async function checkIPsAndRelay() {
-  const newRealIp = await checkIP(false);
-  if (newRealIp !== state.realIp) {
-    state.realIp = newRealIp;
-    state.mainWindow?.webContents.send("real-ip-changed", state.realIp);
-    state.tray?.window?.webContents.send("real-ip-changed", state.realIp);
-  }
   if (state.isProxyRunning) {
     const newProxyIp = await checkIP(true);
     if (newProxyIp !== state.proxyIp) {

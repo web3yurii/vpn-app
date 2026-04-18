@@ -256,7 +256,13 @@ async function getProcessIconPathWindows(pid: string): Promise<string | null> {
 
 // Unix-specific implementation
 async function getUnixProcesses(port: number): Promise<ProcessInfo[]> {
-  const { stdout } = await execAsync(`lsof -i tcp:${port} -nP`);
+  let stdout: string;
+  try {
+    ({ stdout } = await execAsync(`lsof -i tcp:${port} -nP`));
+  } catch {
+    // lsof exits with code 1 when no matching connections exist — not a real error
+    return [];
+  }
   const lines = stdout.split("\n").slice(1); // Skip header line
   const processes: ProcessInfo[] = [];
 

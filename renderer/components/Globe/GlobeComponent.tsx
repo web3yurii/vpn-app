@@ -414,16 +414,18 @@ export default function GlobeComponent({
 
   useEffect(() => {
     const liveHops = circuitHopCoordinates?.filter(Boolean) ?? [];
-    const hasLiveCircuit = liveHops.length > 0 && realLocation;
+    const hasLiveCircuit = liveHops.length > 0;
 
     if (hasLiveCircuit) {
-      const newPoints: Location[] = [
-        {
+      const newPoints: Location[] = [];
+      // Include real location as the origin point only when available
+      if (realLocation) {
+        newPoints.push({
           lat: realLocation.latitude,
           lon: realLocation.longitude,
           name: realLocation.countryCode?.toUpperCase(),
-        },
-      ];
+        });
+      }
       circuitHopCoordinates!.forEach((coord, i) => {
         if (coord) {
           newPoints.push({
@@ -434,13 +436,16 @@ export default function GlobeComponent({
         }
       });
       setPoints(newPoints);
-    } else if (realLocation && proxyLocation && relayLocation) {
-      setPoints([
-        {
+    } else if (proxyLocation && relayLocation) {
+      const pts: Location[] = [];
+      if (realLocation) {
+        pts.push({
           lat: realLocation.latitude,
           lon: realLocation.longitude,
           name: realLocation.countryCode?.toUpperCase(),
-        },
+        });
+      }
+      pts.push(
         {
           lat: relayLocation.latitude,
           lon: relayLocation.longitude,
@@ -450,8 +455,9 @@ export default function GlobeComponent({
           lat: proxyLocation.latitude,
           lon: proxyLocation.longitude,
           name: proxyLocation.countryCode?.toUpperCase(),
-        },
-      ]);
+        }
+      );
+      setPoints(pts);
     } else {
       setPoints([]);
     }

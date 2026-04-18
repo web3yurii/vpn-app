@@ -28,7 +28,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { Rule } from "./RuleBox";
-import { ALL_COUNTRIES } from "../utils/countries";
+import { ALL_COUNTRIES, countryFlag } from "../utils/countries";
 
 interface NewRuleBoxProps {
   isOpen: boolean;
@@ -148,7 +148,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
               <Textarea
                 value={destinations}
                 onChange={(e) => setDestinations(e.target.value)}
-                placeholder="Enter destinations (one per line)"
+                placeholder="e.g. anyone.io (one per line)"
                 minH="100px"
                 bg="rgba(24, 24, 27, 0.70)"
                 border="1px solid"
@@ -208,7 +208,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
                 )}
               </FormLabel>
               <Select
-                placeholder="Select a country..."
+                placeholder="Add Country"
                 bg="rgba(24, 24, 27, 0.70)"
                 border="1px solid"
                 borderColor="gray.600"
@@ -226,7 +226,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
                   .filter(c => !exitCountries.includes(c.code))
                   .map(c => (
                     <option key={c.code} value={c.code} style={{ background: "#18181b" }}>
-                      {c.code.toUpperCase()} — {c.name}
+                      {countryFlag(c.code)} {c.code.toUpperCase()} — {c.name}
                     </option>
                   ))}
               </Select>
@@ -243,7 +243,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
                           bg="rgba(255,255,255,0.12)"
                           color="white"
                         >
-                          <TagLabel>{code.toUpperCase()}{country ? ` — ${country.name}` : ""}</TagLabel>
+                          <TagLabel>{countryFlag(code)} {code.toUpperCase()}{country ? ` — ${country.name}` : ""}</TagLabel>
                           <TagCloseButton onClick={() => handleRemoveExitCountry(code)} />
                         </Tag>
                       </WrapItem>

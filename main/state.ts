@@ -90,9 +90,5 @@ export const state: AppState = {
 };
 
 export async function initializeState() {
-  // Fetch real IP on startup
-  const { checkIP } = await import("./utils");
-  state.realIp = await checkIP(false);
-
-  // Optionally, start other initializations here
+  // Nothing to initialize at startup
 }

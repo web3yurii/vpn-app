@@ -2,6 +2,7 @@
 import { Notification, nativeImage } from "electron";
 import fs from "fs";
 import path from "path";
+import { Socks } from "@anyone-protocol/anyone-client";
 import { state } from "./state";
 
 export function showNotification(title: string, body: string) {
@@ -14,19 +15,32 @@ export interface FingerPrintData {
   coordinates: {longitude: number, latitude: number};
 }
 
-export async function getFingerPrintData(): Promise<Map<string, FingerPrintData> | null> {
+/**
+ * Fetch relay fingerprint → coordinates mapping from the Anyone API.
+ * Pass a Socks client to route through the proxy (useful when the API is blocked
+ * by firewalls/ISPs). Falls back gracefully — globe visualization simply
+ * shows no coordinates when unavailable.
+ */
+export async function getFingerPrintData(socksClient?: Socks): Promise<Map<string, FingerPrintData> | null> {
   const url = "https://api.ec.anyone.tech/fingerprint-map";
   let lastError: any = null;
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error(`Attempt ${attempt}: Error fetching fingerprint data:`, response.statusText);
-        lastError = new Error("Error fetching fingerprint data");
-        continue;
+      let json: any;
+
+      if (socksClient) {
+        const response = await socksClient.get(url);
+        json = response.data;
+      } else {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`Attempt ${attempt}: Error fetching fingerprint data:`, response.statusText);
+          lastError = new Error("Error fetching fingerprint data");
+          continue;
+        }
+        json = await response.json();
       }
-      const json = await response.json();
 
       const fingerprintMap = new Map<string, FingerPrintData>();
       for (const [key, value] of Object.entries(json)) {
@@ -79,7 +93,6 @@ export async function checkIP(useProxy: boolean): Promise<string | null> {
 
         const data = await response.json();
         if (data?.ip) {
-          console.log(`IP without proxy: ${data.ip}`);
           return data.ip;
         }
       }

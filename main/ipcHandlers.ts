@@ -85,6 +85,22 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
     store.set("showAnimations", showAnimations);
   });
 
+  ipcMain.handle("get-dynamic-port", () => {
+    return store.get("dynamicPort", false) as boolean;
+  });
+
+  ipcMain.handle("set-dynamic-port", (_event, enabled: boolean) => {
+    store.set("dynamicPort", enabled);
+  });
+
+  ipcMain.handle("get-match-subdomains", () => {
+    return store.get("matchSubdomains", false) as boolean;
+  });
+
+  ipcMain.handle("set-match-subdomains", (_event, enabled: boolean) => {
+    store.set("matchSubdomains", enabled);
+  });
+
   ipcMain.handle("set-auto-update-preference", (_event, enabled: boolean) => {
     store.set("autoUpdateEnabled", enabled);
   });
@@ -266,13 +282,49 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
       } else {
         await state.anonControlClient.resetConf("ExitNodes", "StrictNodes");
       }
+      // Close existing circuits so new ones are built through the new exit country
+      try {
+        await state.anonControlClient.msgAsync("SIGNAL NEWNYM");
+      } catch (e) {
+        console.warn("SIGNAL NEWNYM failed:", e);
+      }
+      // Re-check proxy IP after a short delay (new circuit needs time to build)
+      setTimeout(async () => {
+        try {
+          const { checkIP } = await import("./utils");
+          const newIp = await checkIP(true);
+          if (newIp) {
+            state.proxyIp = newIp;
+            state.mainWindow?.webContents.send("proxy-ip-changed", newIp);
+            state.tray?.window?.webContents.send("proxy-ip-changed", newIp);
+          }
+        } catch (e) {
+          console.warn("Failed to refresh proxy IP after country change:", e);
+        }
+      }, 5000);
     }
     state.mainWindow?.webContents.send("global-exit-country-changed", country);
+    state.tray?.window?.webContents.send("global-exit-country-changed", country);
   });
 
-  ipcMain.handle("get-available-countries", () => {
-    const live = state.stateManager?.getAvailableCountries();
-    if (live && live.length > 0) return live;
+  ipcMain.handle("get-available-countries", (_event, options?: { minExitCount?: number; excludeCountries?: string[] }) => {
+    const minCount = options?.minExitCount ?? 3;
+    const exclude = new Set((options?.excludeCountries ?? []).map((c: string) => c.toLowerCase()));
+
+    if (state.stateManager?.isReady()) {
+      const countries = state.stateManager.getAvailableCountries();
+      const filtered = countries.filter((cc) => {
+        if (exclude.has(cc.toLowerCase())) return false;
+        const exits = state.stateManager.getExitsByCountry(cc);
+        return exits.length >= minCount;
+      });
+      if (filtered.length > 0) {
+        store.set("cachedAvailableCountries", filtered);
+        return filtered;
+      }
+    }
+
+    // Fallback to cached list (no live filtering possible without StateManager)
     return store.get("cachedAvailableCountries", []) as string[];
   });
 

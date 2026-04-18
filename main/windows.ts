@@ -166,7 +166,7 @@ export function expandMainWindow() {
 
     const newWidth = showAnimations
       ? Math.max(Math.round(width * 0.8), 1024)
-      : Math.max(Math.round(width * 0.5), 400);
+      : Math.max(Math.round(width * 0.55), 840);
     const newHeight = showAnimations
       ? Math.max(Math.round(height * 0.8), 720)
       : Math.max(Math.round(height * 0.8), 700);

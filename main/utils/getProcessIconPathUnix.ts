@@ -16,12 +16,7 @@ export async function getProcessIconUnix(pid: string): Promise<string | null> {
   try {
     const exePath = await getExecutablePathUnix(pid);
     
-    if (!exePath) {
-      console.error(`Executable path not found for PID: ${pid}`);
-      return null;
-    }
-
-    if (!exePath.includes("Applications")) {
+    if (!exePath || !exePath.includes("Applications")) {
       return null;
     }
 
@@ -43,13 +38,12 @@ export async function getProcessIconUnix(pid: string): Promise<string | null> {
       return null;
     }
 
-    // Try to get the icon as a buffer from getAppIconByPid
+    // Try to get the icon as a buffer from getAppIconByPid.
+    // The process may have exited between the lsof listing and this call — that's a
+    // normal race condition, not an error worth logging.
     const buffer = await getAppIconByPid(parseInt(pid, 10), {
       size: 128,
-    }).catch((err) => {
-      console.error(`Error getting icon for PID ${pid}: ${err}`);
-      return null;
-    });
+    }).catch(() => null);
 
     if (buffer) {
       const icon = nativeImage.createFromBuffer(buffer);
@@ -76,9 +70,6 @@ export async function getProcessIconUnix(pid: string): Promise<string | null> {
       } else {
         // Try web fetch only if we haven't tried before
         if (!failedIconCache[`${processName}_web_tried`]) {
-          console.warn(
-            `Local icon not found for process ${processName}. Attempting to fetch from web.`
-          );
           const webIcon = await fetchIconFromWeb(processName);
           if (webIcon) {
             return webIcon;
@@ -140,7 +131,6 @@ async function getExecutablePathUnix(pid: string): Promise<string | null> {
 async function getProcessIconPathUnix(pid: string): Promise<string | null> {
   const exePath = await getExecutablePathUnix(pid);
   if (!exePath) {
-    console.error(`Executable path not found for PID: ${pid}`);
     return null;
   }
 
@@ -232,7 +222,7 @@ function saveIconCache() {
     failed: failedIconCache
   }));
 
-  console.log("Icon cache saved to disk.");
+  // Icon cache saved to disk
 }
 
 // Load cache on startup
