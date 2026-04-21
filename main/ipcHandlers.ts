@@ -77,7 +77,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   ipcMain.handle("get-show-animations", () => {
-    const showAnimations = store.get("showAnimations", true);
+    const showAnimations = store.get("showAnimations", false);
     return showAnimations;
   });
 
@@ -86,7 +86,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   ipcMain.handle("get-dynamic-port", () => {
-    return store.get("dynamicPort", false) as boolean;
+    return store.get("dynamicPort", true) as boolean;
   });
 
   ipcMain.handle("set-dynamic-port", (_event, enabled: boolean) => {

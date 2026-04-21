@@ -110,17 +110,26 @@ function createPersistentConfig(socksPort: number, controlPort: number, exePath:
     // Ensure the persistent data directory exists
     fs.mkdirSync(persistentDataDir, { recursive: true });
 
-    // Copy terms-agreement file into the persistent DataDirectory if needed
-    const termsTarget = path.join(persistentDataDir, "terms-agreement");
-    if (!fs.existsSync(termsTarget)) {
-        const termsSource = state.termsFilePath;
-        if (termsSource && fs.existsSync(termsSource)) {
-            try { fs.copyFileSync(termsSource, termsTarget); } catch { /* ignore */ }
-        } else {
-            // autoTermsAgreement will create it at the cwd; copy from there
-            const cwdTerms = path.join(process.cwd(), "terms-agreement");
-            if (fs.existsSync(cwdTerms)) {
-                try { fs.copyFileSync(cwdTerms, termsTarget); } catch { /* ignore */ }
+    // Ensure terms-agreement exists in both the DataDirectory and the binary's
+    // own directory — the anon binary checks its own dir first.
+    const termsLocations = [
+        path.join(persistentDataDir, "terms-agreement"),
+        path.join(binaryDir, "terms-agreement"),
+    ];
+    const termsSource = state.termsFilePath;
+    for (const termsTarget of termsLocations) {
+        if (!fs.existsSync(termsTarget)) {
+            if (termsSource && fs.existsSync(termsSource)) {
+                try { fs.copyFileSync(termsSource, termsTarget); } catch { /* ignore */ }
+            } else {
+                // autoTermsAgreement may have written it to cwd; copy from there
+                const cwdTerms = path.join(process.cwd(), "terms-agreement");
+                if (fs.existsSync(cwdTerms)) {
+                    try { fs.copyFileSync(cwdTerms, termsTarget); } catch { /* ignore */ }
+                } else {
+                    // Last resort: create an empty marker file so the binary accepts it
+                    try { fs.writeFileSync(termsTarget, ""); } catch { /* ignore */ }
+                }
             }
         }
     }
@@ -154,7 +163,7 @@ export async function startAnyoneProxy() {
         // With dynamic port OFF (default): use the configured ports as-is so
         // tools like Firefox that have a hardcoded port keep working.
         // With dynamic port ON: probe for a free port to avoid bind conflicts.
-        const dynamicPort = store.get("dynamicPort", false) as boolean;
+        const dynamicPort = store.get("dynamicPort", true) as boolean;
         const socksPort = dynamicPort ? await findFreePort(state.anonPort) : state.anonPort;
         const controlPort = dynamicPort ? await findFreePort(state.anonControlPort) : state.anonControlPort;
         console.log(`Using SOCKS port: ${socksPort}, Control port: ${controlPort} (dynamic: ${dynamicPort})`);
@@ -249,8 +258,6 @@ export async function startAnyoneProxy() {
 
         setProxySettings(true, state.proxyPort);
 
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
         // Create Control client and authenticate using the actual dynamic port
         try {
             state.anonControlClient = new Control('127.0.0.1', state.anonControlPort);
@@ -264,8 +271,29 @@ export async function startAnyoneProxy() {
                 "proxy-error",
                 `Error creating control client: ${error.message}`
             );
+            return;
         }
-        await state.anonControlClient.authenticate();
+
+        // Retry authenticate — the control port may not be ready immediately after start
+        {
+            const maxAttempts = 5;
+            const delays = [1500, 2000, 3000, 4000, 5000];
+            let lastError: any;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+                try {
+                    await state.anonControlClient.authenticate();
+                    lastError = null;
+                    break;
+                } catch (error: any) {
+                    lastError = error;
+                    console.warn(`Control authenticate attempt ${attempt + 1} failed: ${error.message}`);
+                }
+            }
+            if (lastError) {
+                throw lastError;
+            }
+        }
 
         // Apply global exit country if configured
         const globalExitCountry = store.get("globalExitCountry", null) as string | null;

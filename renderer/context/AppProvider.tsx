@@ -103,7 +103,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [proxyPort, setProxyPort] = useState<number>(9050); // Default proxy port - same as anon port (direct socks proxy without proxy chains)
   const [anyonePort, setAnyonePort] = useState<number>(9050); // Default anyone port
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [showAnimations, setShowAnimations] = useState<boolean>(true);
+  const [showAnimations, setShowAnimations] = useState<boolean>(false);
   const [relayLocationData, setRelayLocationData] = useState<
     Map<string, FingerPrintData>
   >(new Map());
