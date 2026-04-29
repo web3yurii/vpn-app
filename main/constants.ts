@@ -96,30 +96,10 @@ export const exePath = (() => {
 })();
 
 export const termsFilePath = (() => {
-  let termsFilePath;
-  const platform = process.platform;
-
   if (app.isPackaged) {
-    if (platform === "win32") {
-      termsFilePath = path.join(
-        process.resourcesPath,
-        "app.asar.unpacked",
-        "terms-agreement"
-      );
-    } else if (platform === "darwin") {
-      termsFilePath = path.join(
-        process.resourcesPath,
-        "app.asar.unpacked",
-        "terms-agreement"
-      );
-    } else if (platform === "linux") {
-      termsFilePath = path.join(
-        process.resourcesPath,
-        "app.asar.unpacked",
-        "terms-agreement"
-      );
-    }
+    return path.join(process.resourcesPath, "app.asar.unpacked", "terms-agreement");
+  } else {
+    // Development: file lives at the project root
+    return path.join(path.dirname(__dirname), "terms-agreement");
   }
-
-  return termsFilePath;
 })();

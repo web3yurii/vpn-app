@@ -35,8 +35,15 @@ export async function getFingerPrintData(socksClient?: Socks): Promise<Map<strin
       } else {
         const response = await fetch(url);
         if (!response.ok) {
-          console.error(`Attempt ${attempt}: Error fetching fingerprint data:`, response.statusText);
-          lastError = new Error("Error fetching fingerprint data");
+          const err = new Error(`${response.status} ${response.statusText}`);
+          // 4xx means the endpoint is gone — no point retrying
+          if (response.status >= 400 && response.status < 500) {
+            console.warn(`Fingerprint fetch failed: ${err.message}`);
+            throw err;
+          }
+          console.warn(`Attempt ${attempt}: fingerprint fetch failed: ${err.message}`);
+          lastError = err;
+          await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         }
         json = await response.json();
@@ -55,8 +62,15 @@ export async function getFingerPrintData(socksClient?: Socks): Promise<Map<strin
         }
       }
       return fingerprintMap;
-    } catch (error) {
-      console.error(`Attempt ${attempt}: Error fetching or parsing fingerprint data:`, error);
+    } catch (error: any) {
+      const status = error?.response?.status ?? error?.status;
+      const msg = error?.message ?? String(error);
+      // 4xx from Axios (socksClient path) — no point retrying
+      if (status >= 400 && status < 500) {
+        console.warn(`Fingerprint fetch failed: ${msg}`);
+        throw error;
+      }
+      console.warn(`Attempt ${attempt}: fingerprint fetch failed: ${msg}`);
       lastError = error;
       await new Promise(resolve => setTimeout(resolve, 1000));
     }

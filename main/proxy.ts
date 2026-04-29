@@ -127,8 +127,8 @@ function createPersistentConfig(socksPort: number, controlPort: number, exePath:
                 if (fs.existsSync(cwdTerms)) {
                     try { fs.copyFileSync(cwdTerms, termsTarget); } catch { /* ignore */ }
                 } else {
-                    // Last resort: create an empty marker file so the binary accepts it
-                    try { fs.writeFileSync(termsTarget, ""); } catch { /* ignore */ }
+                    // Last resort: create marker file with required content
+                    try { fs.writeFileSync(termsTarget, "agreed"); } catch { /* ignore */ }
                 }
             }
         }
@@ -157,7 +157,6 @@ export async function startAnyoneProxy() {
 
     try {
         const exePath = state.exePath;
-        const termsFilePath = state.termsFilePath;
 
         // ── Resolve ports ──
         // With dynamic port OFF (default): use the configured ports as-is so
@@ -185,26 +184,13 @@ export async function startAnyoneProxy() {
         console.log("connecting with anyone port: ", socksPort);
 
         try {
-            if (termsFilePath) {
-                state.anon = new Process({
-                    displayLog: false,
-                    binaryPath: exePath,
-                    autoTermsAgreement: true,
-                    termsFilePath: termsFilePath,
-                    socksPort,
-                    controlPort,
-                    configFile: configFilePath,
-                });
-            } else {
-                state.anon = new Process({
-                    displayLog: false,
-                    binaryPath: exePath,
-                    autoTermsAgreement: true,
-                    socksPort,
-                    controlPort,
-                    configFile: configFilePath,
-                });
-            }
+            state.anon = new Process({
+                displayLog: false,
+                binaryPath: exePath,
+                socksPort,
+                controlPort,
+                configFile: configFilePath,
+            });
         } catch (error) {
             console.error("Error creating Anyone process:", error);
             state.mainWindow?.webContents.send(

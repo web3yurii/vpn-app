@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Flex, Text, VStack, Divider } from "@chakra-ui/react";
-import { countryFlag } from "../utils/countries";
+import FlagIcon from "./FlagIcon";
 import { useAppContext } from "../context/AppProvider";
 
 const ROLES = ["Entry", "Middle", "Exit"];
@@ -27,13 +27,16 @@ const Connector: React.FC = () => (
   <Box flex={1} h="2px" bg="rgba(39,215,242,0.35)" alignSelf="center" minW="8px" />
 );
 
-const DetailRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+const DetailRow: React.FC<{ label: string; value: string; flagCode?: string }> = ({ label, value, flagCode }) => (
   <Flex align="baseline" gap={2} w="100%" minW={0}>
     <Text fontSize="11px" color="gray.500" flexShrink={0} w="82px">{label}</Text>
     <Box flex={1} minW={0} overflow="hidden">
-      <Text fontSize="11px" color="gray.300" fontFamily="mono" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
-        {value}
-      </Text>
+      <Flex align="center" gap={1}>
+        {flagCode && <FlagIcon code={flagCode} width={14} style={{ borderRadius: "1px" }} />}
+        <Text fontSize="11px" color="gray.300" fontFamily="mono" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
+          {value}
+        </Text>
+      </Flex>
     </Box>
   </Flex>
 );
@@ -81,7 +84,8 @@ const CircuitPathView: React.FC = () => {
                   <DetailRow label="IP" value={hop.ip} />
                   <DetailRow
                     label="Country"
-                    value={hop.country !== '??' ? `${countryFlag(hop.country)} ${hop.country}` : '??'}
+                    value={hop.country !== '??' ? hop.country : '??'}
+                    flagCode={hop.country !== '??' ? hop.country : undefined}
                   />
                   <DetailRow label="Fingerprint" value={hop.fingerprint} />
                   <DetailRow label="Bandwidth" value={hop.bandwidth > 0 ? hop.bandwidth.toLocaleString() : '?'} />

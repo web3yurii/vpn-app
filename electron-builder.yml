@@ -11,8 +11,10 @@ files:
     filter:
       - package.json
       - app
+      - terms-agreement
 asarUnpack:
       - node_modules/@anyone-protocol/anyone-client/bin
+      - terms-agreement
 publish:
   provider: spaces
   name: anyoneDesktop-updates

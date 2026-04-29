@@ -11,7 +11,6 @@ import {
   NumberDecrementStepper,
   VStack,
   Textarea,
-  Select,
   HStack,
   Tag,
   TagLabel,
@@ -25,10 +24,13 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalFooter,
+  Flex,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { Rule } from "./RuleBox";
-import { ALL_COUNTRIES, countryFlag } from "../utils/countries";
+import { ALL_COUNTRIES } from "../utils/countries";
+import CountrySelect from "./CountrySelect";
+import FlagIcon from "./FlagIcon";
 
 interface NewRuleBoxProps {
   isOpen: boolean;
@@ -207,29 +209,13 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
                   <Box as="span" fontSize="xs" color="gray.500" ml={2}>(all countries — start proxy to see available)</Box>
                 )}
               </FormLabel>
-              <Select
+              <CountrySelect
+                value={null}
+                onChange={(code) => { if (code) handleAddExitCountry(code); }}
+                options={displayCountries.filter(c => !exitCountries.includes(c.code))}
                 placeholder="Add Country"
-                bg="rgba(24, 24, 27, 0.70)"
-                border="1px solid"
-                borderColor="gray.600"
-                _focus={{
-                  borderColor: headerBgColor,
-                  boxShadow: `0 0 0 1px ${headerBgColor}`,
-                }}
-                value=""
-                onChange={(e) => {
-                  handleAddExitCountry(e.target.value);
-                  e.target.value = "";
-                }}
-              >
-                {displayCountries
-                  .filter(c => !exitCountries.includes(c.code))
-                  .map(c => (
-                    <option key={c.code} value={c.code} style={{ background: "#18181b" }}>
-                      {countryFlag(c.code)} {c.code.toUpperCase()} — {c.name}
-                    </option>
-                  ))}
-              </Select>
+                headerBgColor={headerBgColor}
+              />
               {exitCountries.length > 0 && (
                 <Wrap mt={2} spacing={2}>
                   {exitCountries.map(code => {
@@ -243,7 +229,12 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
                           bg="rgba(255,255,255,0.12)"
                           color="white"
                         >
-                          <TagLabel>{countryFlag(code)} {code.toUpperCase()}{country ? ` — ${country.name}` : ""}</TagLabel>
+                          <TagLabel>
+                            <Flex as="span" align="center" gap={1} display="inline-flex">
+                              <FlagIcon code={code} width={16} />
+                              {code.toUpperCase()}{country ? ` — ${country.name}` : ""}
+                            </Flex>
+                          </TagLabel>
                           <TagCloseButton onClick={() => handleRemoveExitCountry(code)} />
                         </Tag>
                       </WrapItem>
