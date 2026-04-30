@@ -276,11 +276,22 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle("set-global-exit-country", async (_event, country: string | null) => {
     store.set("globalExitCountry", country);
     if (state.anonControlClient && state.isProxyRunning) {
-      if (country) {
-        await state.anonControlClient.setConf("ExitNodes", `{${country}}`);
-        await state.anonControlClient.setConf("StrictNodes", "1");
-      } else {
-        await state.anonControlClient.resetConf("ExitNodes", "StrictNodes");
+      try {
+        if (country) {
+          await state.anonControlClient.setConf("ExitNodes", `{${country}}`);
+          await state.anonControlClient.setConf("StrictNodes", "1");
+        } else {
+          await state.anonControlClient.resetConf("ExitNodes", "StrictNodes");
+        }
+      } catch (e: any) {
+        // The SDK's control client can receive an async circuit-status event
+        // while waiting for the SETCONF reply and mistakenly treat it as the
+        // response. Code 250 means the command succeeded — safe to ignore.
+        if (e?.message?.includes("circuit-status")) {
+          console.warn("SETCONF interleaved with circuit-status event, command likely succeeded");
+        } else {
+          throw e;
+        }
       }
       // Close existing circuits so new ones are built through the new exit country
       try {

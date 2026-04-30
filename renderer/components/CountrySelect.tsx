@@ -48,16 +48,29 @@ const CountrySelect: React.FC<Props> = ({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    const dropdownH = Math.min(260, spaceBelow - 8);
+    const spaceAbove = rect.top;
+    const openUpward = spaceAbove > spaceBelow;
+    const maxH = Math.min(260, (openUpward ? spaceAbove : spaceBelow) - 8);
 
-    setDropdownStyle({
-      position: "fixed",
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-      zIndex: 99999,
-      maxHeight: dropdownH,
-    });
+    setDropdownStyle(
+      openUpward
+        ? {
+            position: "fixed",
+            bottom: window.innerHeight - rect.top + 4,
+            left: rect.left,
+            width: rect.width,
+            zIndex: 99999,
+            maxHeight: maxH,
+          }
+        : {
+            position: "fixed",
+            top: rect.bottom + 4,
+            left: rect.left,
+            width: rect.width,
+            zIndex: 99999,
+            maxHeight: maxH,
+          }
+    );
     setIsOpen(true);
   };
 

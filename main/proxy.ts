@@ -284,8 +284,16 @@ export async function startAnyoneProxy() {
         // Apply global exit country if configured
         const globalExitCountry = store.get("globalExitCountry", null) as string | null;
         if (globalExitCountry) {
-            await state.anonControlClient.setConf("ExitNodes", `{${globalExitCountry}}`);
-            await state.anonControlClient.setConf("StrictNodes", "1");
+            try {
+                await state.anonControlClient.setConf("ExitNodes", `{${globalExitCountry}}`);
+                await state.anonControlClient.setConf("StrictNodes", "1");
+            } catch (e: any) {
+                if (e?.message?.includes("circuit-status")) {
+                    console.warn("SETCONF interleaved with circuit-status event, command likely succeeded");
+                } else {
+                    throw e;
+                }
+            }
         }
 
         // Initialize StateManager (for relay caching, VPNManager handles events)
