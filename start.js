@@ -37,3 +37,11 @@ process.on("SIGINT", () => {
   clearProxySync();
   nextronProcess.kill("SIGINT");
 });
+process.on("SIGTERM", () => {
+  clearProxySync();
+  nextronProcess.kill("SIGTERM");
+});
+process.on("SIGHUP", () => {
+  clearProxySync();
+  nextronProcess.kill("SIGHUP");
+});

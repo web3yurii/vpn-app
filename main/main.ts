@@ -35,6 +35,7 @@ process.on('unhandledRejection', (reason: any) => {
 let isCleaningUp = false;
 process.on('SIGINT', () => { if (!isCleaningUp) app.quit(); });
 process.on('SIGTERM', () => { if (!isCleaningUp) app.quit(); });
+process.on('SIGHUP', () => { if (!isCleaningUp) app.quit(); });
 
 // ---- SINGLE INSTANCE LOCK ----
 const gotTheLock = app.requestSingleInstanceLock();

@@ -93,6 +93,22 @@ async function findFreePort(preferred: number): Promise<number> {
     });
 }
 
+/** Copy the latest consensus files to a backup dir so future fresh installs can seed from them. */
+function updateConsensusBackup() {
+    const userData = app.getPath("userData");
+    const dataDir  = path.join(userData, "anon-data");
+    const backupDir = path.join(userData, "anon-backup");
+    try {
+        fs.mkdirSync(backupDir, { recursive: true });
+        for (const file of ["cached-microdesc-consensus", "cached-certs"]) {
+            const src = path.join(dataDir, file);
+            if (fs.existsSync(src)) {
+                fs.copyFileSync(src, path.join(backupDir, file));
+            }
+        }
+    } catch { /* non-critical */ }
+}
+
 /**
  * Write a persistent anon config file that points to a fixed DataDirectory.
  * This lets anon reuse cached descriptors across restarts for faster bootstrap.
@@ -109,6 +125,18 @@ function createPersistentConfig(socksPort: number, controlPort: number, exePath:
 
     // Ensure the persistent data directory exists
     fs.mkdirSync(persistentDataDir, { recursive: true });
+
+    // Seed consensus files from the runtime backup if the data dir is fresh.
+    // The backup is written after every successful proxy start so it stays current.
+    const consensusFiles = ["cached-microdesc-consensus", "cached-certs"];
+    const backupDir = path.join(userData, "anon-backup");
+    for (const file of consensusFiles) {
+        const dest = path.join(persistentDataDir, file);
+        const src  = path.join(backupDir, file);
+        if (!fs.existsSync(dest) && fs.existsSync(src)) {
+            try { fs.copyFileSync(src, dest); } catch { /* ignore */ }
+        }
+    }
 
     // Ensure terms-agreement exists in both the DataDirectory and the binary's
     // own directory — the anon binary checks its own dir first.
@@ -150,7 +178,7 @@ function createPersistentConfig(socksPort: number, controlPort: number, exePath:
 }
 
 export async function startAnyoneProxy() {
-    if (state.anon || state.isProxyStarting) {
+    if (state.anon || state.isProxyStarting || state.isProxyStopping) {
         console.log("Anyone proxy is already running or starting.");
         return;
     }
@@ -414,6 +442,8 @@ export async function startAnyoneProxy() {
         await stopPrivoxy();
         setProxySettings(false, state.proxyPort);
         showNotification("Proxy Error", `Failed to start proxy: ${error.message}`);
+    } finally {
+        state.isProxyStarting = false;
     }
 }
 
@@ -717,6 +747,7 @@ export async function stopAnyoneProxy() {
         console.log("Anyone proxy is not running.");
         return;
     }
+    state.isProxyStopping = true;
 
     baseDomainTargetMap.clear();
     setProxySettings(false, state.proxyPort);
@@ -757,7 +788,14 @@ export async function stopAnyoneProxy() {
     }
 
     try {
-        await state.anon.stop();
+        // Snapshot the freshest consensus before the process exits
+        updateConsensusBackup();
+        try {
+            await state.anon.stop();
+        } catch (stopErr) {
+            // stop() failed — force-kill as fallback
+            try { await Process.killAnonProcess(); } catch (_) {}
+        }
         console.log("Anyone proxy stopped.");
 
         await stopPrivoxy();
@@ -782,5 +820,7 @@ export async function stopAnyoneProxy() {
     } finally {
         state.anon = null;
         state.anonSocksClient = null;
+        state.isProxyStarting = false;  // clear if stop was called during a start
+        state.isProxyStopping = false;
     }
 }

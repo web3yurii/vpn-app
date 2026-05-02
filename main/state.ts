@@ -42,6 +42,7 @@ interface AppState {
   isQuitting: boolean;
   isProxyRunning: boolean;
   isProxyStarting: boolean;
+  isProxyStopping: boolean;
   anon: Process | null;
   anonSocksClient: Socks | null;
   anonControlClient: Control | null;
@@ -70,6 +71,7 @@ export const state: AppState = {
   isQuitting: false,
   isProxyRunning: false,
   isProxyStarting: false,
+  isProxyStopping: false,
   anon: null,
   anonSocksClient: null,
   anonControlClient: null,
