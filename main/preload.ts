@@ -238,7 +238,7 @@ getIcon: (iconPath) => ipcRenderer.invoke("get-icon", iconPath),
   toggleProxyRule: (ruleId: string) => ipcRenderer.invoke("toggle-proxy-rule", ruleId),
   toggleAllProxyRules: (enabled: boolean) => ipcRenderer.invoke("toggle-all-proxy-rules", enabled),
   getProxyRules: () => ipcRenderer.invoke("get-proxy-rules"),
-  getAvailableCountries: (options?: { minExitCount?: number; excludeCountries?: string[] }): Promise<string[]> => ipcRenderer.invoke("get-available-countries", options),
+  getAvailableCountries: (options?: { minExitCount?: number; excludeCountries?: string[] }): Promise<{ code: string; count: number }[]> => ipcRenderer.invoke("get-available-countries", options),
   getGlobalExitCountry: (): Promise<string | null> => ipcRenderer.invoke("get-global-exit-country"),
   setGlobalExitCountry: (country: string | null) => ipcRenderer.invoke("set-global-exit-country", country),
   onGlobalExitCountryChanged: (callback: (country: string | null) => void) => {

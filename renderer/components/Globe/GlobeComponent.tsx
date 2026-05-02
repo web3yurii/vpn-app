@@ -201,8 +201,13 @@ const Bridge = ({
 }) => {
   const numPoints = 50;
 
+  const validCoords =
+    isFinite(start.lat) && isFinite(start.lon) &&
+    isFinite(end.lat)   && isFinite(end.lon);
+
   // Memoize the bridge path calculation
   const pathPoints = useMemo(() => {
+    if (!validCoords) return [];
     const startPos = latLongToCartesianPoints(start.lat, start.lon, radius);
     const endPos = latLongToCartesianPoints(end.lat, end.lon, radius);
     const points: THREE.Vector3[] = [];
@@ -224,6 +229,8 @@ const Bridge = ({
 
     return points;
   }, [start, end, radius, amplitude]); // Only recalculate when these dependencies change
+
+  if (!validCoords || pathPoints.length === 0) return null;
 
   return (
     <>
@@ -419,7 +426,7 @@ export default function GlobeComponent({
     if (hasLiveCircuit) {
       const newPoints: Location[] = [];
       // Include real location as the origin point only when available
-      if (realLocation) {
+      if (realLocation && isFinite(realLocation.latitude) && isFinite(realLocation.longitude)) {
         newPoints.push({
           lat: realLocation.latitude,
           lon: realLocation.longitude,
@@ -427,7 +434,7 @@ export default function GlobeComponent({
         });
       }
       circuitHopCoordinates!.forEach((coord, i) => {
-        if (coord) {
+        if (coord && isFinite(coord.latitude) && isFinite(coord.longitude)) {
           newPoints.push({
             lat: coord.latitude,
             lon: coord.longitude,

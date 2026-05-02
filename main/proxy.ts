@@ -150,10 +150,11 @@ function createPersistentConfig(socksPort: number, controlPort: number, exePath:
 }
 
 export async function startAnyoneProxy() {
-    if (state.anon) {
-        console.log("Anyone proxy is already running.");
+    if (state.anon || state.isProxyStarting) {
+        console.log("Anyone proxy is already running or starting.");
         return;
     }
+    state.isProxyStarting = true;
 
     try {
         const exePath = state.exePath;
@@ -174,8 +175,8 @@ export async function startAnyoneProxy() {
             .then((data) => {
                 state.fingerprintData = data ?? new Map();
             })
-            .catch((err) => {
-                console.warn("Initial fingerprint fetch failed, will retry via proxy:", err.message);
+            .catch(() => {
+                // Will retry via proxy after startup; globe coords unavailable until then
             });
 
         // ── Create persistent config for cached descriptor reuse ──
@@ -311,22 +312,23 @@ export async function startAnyoneProxy() {
             store.set("cachedAvailableCountries", availableCountries);
         }
 
-        // ── Await fingerprint data (bootstrap takes long, should be done by now) ──
-        await fingerprintPromise;
+        // Give the parallel fingerprint fetch 500 ms to finish (it'll already be done
+        // if the network is fast). If still pending, proceed and let the proxy retry
+        // handle it in the background — fingerprint data is non-critical.
+        await Promise.race([fingerprintPromise, new Promise<void>(r => setTimeout(r, 500))]);
 
-        // If fingerprint is still empty (external API blocked), retry through the SOCKS proxy
+        // Retry via proxy for any case where direct fetch didn't succeed
         if (!state.fingerprintData || state.fingerprintData.size === 0) {
-            console.log("Retrying fingerprint fetch via SOCKS proxy...");
             getFingerPrintData(state.anonSocksClient)
                 .then((data) => {
                     if (data && data.size > 0) {
                         state.fingerprintData = data;
-                        console.log("Fingerprint data loaded via proxy:", data.size, "entries");
+                        console.log(`Fingerprint data loaded: ${data.size} relays`);
                     }
                 })
-                .catch((err) =>
-                    console.warn("Fingerprint via proxy also failed, globe coordinates unavailable:", err.message)
-                );
+                .catch(() => {
+                    console.log("Relay coordinates unavailable — globe will show relays without positions");
+                });
         }
 
         // Get relay data for UI
@@ -377,6 +379,7 @@ export async function startAnyoneProxy() {
         state.mainWindow?.webContents.send("proxy-started");
         state.tray?.window?.webContents.send("proxy-started");
         state.isProxyRunning = true;
+        state.isProxyStarting = false;
         showNotification(
             "Proxy Started",
             "Your system is now using the Anyone proxy."
@@ -407,6 +410,7 @@ export async function startAnyoneProxy() {
         state.anonSocksClient = null;
         state.stateManager = null;
         state.vpnManager = null;
+        state.isProxyStarting = false;
         await stopPrivoxy();
         setProxySettings(false, state.proxyPort);
         showNotification("Proxy Error", `Failed to start proxy: ${error.message}`);

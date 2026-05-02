@@ -19,7 +19,7 @@ import {
 } from "./windows";
 import { setProxySettings } from "./systemProxy";
 import { state } from "./state";
-import { app } from "./background";
+import { app } from "./main";
 import { UpdateTrayIcon } from "./tray";
 import { ProxyRule } from "./proxy";
 import { Process } from "@anyone-protocol/anyone-client";
@@ -276,22 +276,25 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
   ipcMain.handle("set-global-exit-country", async (_event, country: string | null) => {
     store.set("globalExitCountry", country);
     if (state.anonControlClient && state.isProxyRunning) {
-      try {
-        if (country) {
+      if (country) {
+        try {
           await state.anonControlClient.setConf("ExitNodes", `{${country}}`);
           await state.anonControlClient.setConf("StrictNodes", "1");
-        } else {
-          await state.anonControlClient.resetConf("ExitNodes", "StrictNodes");
+        } catch (e: any) {
+          // The SDK's control client can receive an async circuit-status event
+          // while waiting for the SETCONF reply and mistakenly treat it as the
+          // response. Code 250 means the command succeeded — safe to ignore.
+          if (e?.message?.includes("circuit-status")) {
+            console.warn("SETCONF interleaved with circuit-status event, command likely succeeded");
+          } else {
+            throw e;
+          }
         }
-      } catch (e: any) {
-        // The SDK's control client can receive an async circuit-status event
-        // while waiting for the SETCONF reply and mistakenly treat it as the
-        // response. Code 250 means the command succeeded — safe to ignore.
-        if (e?.message?.includes("circuit-status")) {
-          console.warn("SETCONF interleaved with circuit-status event, command likely succeeded");
-        } else {
-          throw e;
-        }
+      } else {
+        // Any Country: best-effort reset — suppress all errors since a race
+        // between the RESETCONF reply and an async circuit event can cause a
+        // false failure. NEWNYM below rebuilds circuits without constraints.
+        try { await state.anonControlClient.resetConf("ExitNodes", "StrictNodes"); } catch (_) {}
       }
       // Close existing circuits so new ones are built through the new exit country
       try {
@@ -324,19 +327,22 @@ export function setupIpcHandlers(mainWindow: BrowserWindow) {
 
     if (state.stateManager?.isReady()) {
       const countries = state.stateManager.getAvailableCountries();
-      const filtered = countries.filter((cc) => {
-        if (exclude.has(cc.toLowerCase())) return false;
-        const exits = state.stateManager.getExitsByCountry(cc);
-        return exits.length >= minCount;
-      });
-      if (filtered.length > 0) {
-        store.set("cachedAvailableCountries", filtered);
-        return filtered;
+      const withCounts = countries
+        .filter((cc) => {
+          if (exclude.has(cc.toLowerCase())) return false;
+          return state.stateManager.getExitsByCountry(cc).length >= minCount;
+        })
+        .map((cc) => ({ code: cc, count: state.stateManager.getExitsByCountry(cc).length }))
+        .sort((a, b) => b.count - a.count);
+      if (withCounts.length > 0) {
+        store.set("cachedAvailableCountries", withCounts.map((c) => c.code));
+        return withCounts;
       }
     }
 
-    // Fallback to cached list (no live filtering possible without StateManager)
-    return store.get("cachedAvailableCountries", []) as string[];
+    // Fallback to cached list — no live counts available
+    const cached = store.get("cachedAvailableCountries", []) as string[];
+    return cached.map((code) => ({ code, count: 0 }));
   });
 
   // change proxy port

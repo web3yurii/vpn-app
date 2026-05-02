@@ -54,15 +54,25 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
   const [hops, setHops] = useState(currentRule?.hops || 2);
   const [entryCountries, setEntryCountries] = useState(currentRule?.entryCountries.join(",") || "");
   const [exitCountries, setExitCountries] = useState<string[]>(currentRule?.exitCountries.map(c => c.toLowerCase()) ?? []);
-  const [availableCountryCodes, setAvailableCountryCodes] = useState<string[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<{ code: string; count: number }[]>([]);
+
+  const fetchCountries = () => {
+    window.ipc.getAvailableCountries().then(setAvailableCountries).catch(() => {});
+  };
 
   useEffect(() => {
-    window.ipc.getAvailableCountries().then(setAvailableCountryCodes).catch(() => {});
+    fetchCountries();
+    return window.ipc.onProxyStarted(fetchCountries);
   }, []);
 
   // If we have SDK-provided countries, restrict to those; otherwise show all world countries
-  const displayCountries = availableCountryCodes.length > 0
-    ? ALL_COUNTRIES.filter(c => availableCountryCodes.includes(c.code))
+  const displayCountries = availableCountries.length > 0
+    ? availableCountries
+        .map(({ code, count }) => {
+          const found = ALL_COUNTRIES.find(c => c.code === code);
+          return found ? { ...found, count } : null;
+        })
+        .filter(Boolean)
     : ALL_COUNTRIES;
 
   useEffect(() => {
@@ -205,7 +215,7 @@ export const NewRuleBox: React.FC<NewRuleBoxProps> = ({
             <FormControl>
               <FormLabel color="gray.300">
                 Exit Countries
-                {availableCountryCodes.length === 0 && (
+                {availableCountries.length === 0 && (
                   <Box as="span" fontSize="xs" color="gray.500" ml={2}>(all countries — start proxy to see available)</Box>
                 )}
               </FormLabel>

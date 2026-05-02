@@ -7,6 +7,7 @@ import FlagIcon from "./FlagIcon";
 interface CountryOption {
   code: string;
   name: string;
+  count?: number;
 }
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   placeholder?: string;
   headerBgColor?: string;
   includeAny?: boolean;
+  anyCountryCount?: number;
 }
 
 const CountrySelect: React.FC<Props> = ({
@@ -25,6 +27,7 @@ const CountrySelect: React.FC<Props> = ({
   placeholder = "Select country",
   headerBgColor = "#27D7F2",
   includeAny = false,
+  anyCountryCount,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -147,9 +150,14 @@ const CountrySelect: React.FC<Props> = ({
                 _hover={{ bg: "rgba(255,255,255,0.08)" }}
                 onClick={() => handleSelect(null)}
               >
-                <Text fontSize="sm" color="gray.400">
+                <Text fontSize="sm" color="gray.400" flex={1}>
                   Any country
                 </Text>
+                {anyCountryCount != null && anyCountryCount > 0 && (
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {anyCountryCount}
+                  </Text>
+                )}
               </Flex>
             )}
 
@@ -166,9 +174,14 @@ const CountrySelect: React.FC<Props> = ({
                 onClick={() => handleSelect(c.code)}
               >
                 <FlagIcon code={c.code} width={20} />
-                <Text fontSize="sm" color="white">
+                <Text fontSize="sm" color="white" flex={1} noOfLines={1}>
                   {c.code.toUpperCase()} — {c.name}
                 </Text>
+                {c.count != null && c.count > 0 && (
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {c.count}
+                  </Text>
+                )}
               </Flex>
             ))}
 
@@ -210,12 +223,20 @@ const CountrySelect: React.FC<Props> = ({
               <FlagIcon code={selected.code} width={20} />
               <Text fontSize="sm" color="white" noOfLines={1}>
                 {selected.code.toUpperCase()} — {selected.name}
+                {selected.count != null && selected.count > 0 ? ` (${selected.count})` : ""}
               </Text>
             </>
           ) : (
-            <Text fontSize="sm" color="gray.500">
-              {value === null && includeAny ? "Any country" : placeholder}
-            </Text>
+            <Flex align="center" gap={2} flex={1} minW={0} overflow="hidden">
+              <Text fontSize="sm" color="gray.500">
+                {value === null && includeAny ? "Any country" : placeholder}
+              </Text>
+              {value === null && includeAny && anyCountryCount != null && anyCountryCount > 0 && (
+                <Text fontSize="xs" color="gray.600">
+                  {anyCountryCount}
+                </Text>
+              )}
+            </Flex>
           )}
         </Flex>
         <ChevronDownIcon

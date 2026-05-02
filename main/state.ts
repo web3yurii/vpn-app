@@ -41,6 +41,7 @@ interface AppState {
   tray: Menubar;
   isQuitting: boolean;
   isProxyRunning: boolean;
+  isProxyStarting: boolean;
   anon: Process | null;
   anonSocksClient: Socks | null;
   anonControlClient: Control | null;
@@ -68,6 +69,7 @@ export const state: AppState = {
   tray: null,
   isQuitting: false,
   isProxyRunning: false,
+  isProxyStarting: false,
   anon: null,
   anonSocksClient: null,
   anonControlClient: null,

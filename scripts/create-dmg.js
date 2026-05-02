@@ -24,7 +24,7 @@ async function buildDMG() {
   }
 
   if (!appPath) {
-    console.error('❌ App not found! Please run electron-forge package first.');
+    console.error('❌ App not found! Please run electron-packager or nextron build first.');
     console.log('Looking in:', outDir);
     console.log('Expected paths:', possiblePaths);
     return;
