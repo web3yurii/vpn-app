@@ -120,22 +120,23 @@ if (!gotTheLock) {
     app.on("before-quit", async (event) => {
       if (isCleaningUp) return;
       isCleaningUp = true;
+      state.isQuitting = true;
       event.preventDefault();
       try {
-        await setProxySettings(false, state.proxyPort);
+        if (state.isProxyRunning) {
+          await setProxySettings(false, state.proxyPort);
+        }
         if (state.anon) {
-          state.isQuitting = true;
           await stopAnyoneProxy();
         }
       } catch (_) {}
       app.quit();
     });
 
-    app.on("window-all-closed", async () => {
+    app.on("window-all-closed", () => {
       if (platform === "darwin") {
         app.dock.hide();
       }
-      mainWindow.hide();
     });
 
     app.on("will-quit", () => {

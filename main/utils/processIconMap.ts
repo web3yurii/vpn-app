@@ -1,12 +1,12 @@
 export const processIconMap: { [key: string]: string } = {
-  code: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/visualstudiocode.svg",
-  visual: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/visualstudiocode.svg",
-  "google chrome": "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/googlechrome.svg",
-  google: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/googlechrome.svg",
-  brave: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/brave.svg",
-  slack: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/slack.svg",
-  safari: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/safari.svg",
-  firefox: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/firefox.svg",
+  code: "vscode.svg",
+  visual: "vscode.svg",
+  "google chrome": "chrome.svg",
+  google: "chrome.svg",
+  brave: "brave.png",
+  slack: "slack.svg",
+  safari: "safari.svg",
+  firefox: "firefox.svg",
 };
 
 /**

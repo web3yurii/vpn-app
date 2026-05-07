@@ -15,6 +15,7 @@ interface AnimatedButtonProps {
   handleStopProxy: () => void;
   isLoading: boolean;
   expanded: boolean;
+  appBooted: boolean;
 }
 
 const AnimatedButton: React.FC<AnimatedButtonProps> = ({
@@ -23,15 +24,17 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   handleStopProxy,
   isLoading,
   expanded,
+  appBooted,
 }) => {
+  const showAnimation = appBooted && (isLoading || proxyRunning);
+
   return (
     <Box
       width="100%"
-      height="375px"
-      // p="0px 52.835px 0px 54.717px"
-      // mt={!proxyRunning ? (expanded ? "-32%" : "-150px") : undefined}
-      m="20px 0"
-      overflow="hidden"
+      height="320px"
+      mt="32px"
+      mb="8px"
+      overflow="visible"
       cursor="pointer"
       onClick={proxyRunning || isLoading ? handleStopProxy : handleStartProxy}
       zIndex={0}
@@ -40,13 +43,12 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       alignItems={"center"}
     >
       {/* Background Animation */}
-      {(isLoading || proxyRunning) && (
+      {showAnimation && (
         <BgAnimation autoplay={true} loop={true} expanded={expanded} />
       )}
-      {/* <BgAnimation autoplay={true} loop={true} expanded={expanded} /> */}
 
       {/* Clickable Content */}
-      {!proxyRunning && !isLoading && (
+      {!showAnimation && (
         <Box position="relative" zIndex={1} width="250px" height="250px">
           <Logo />
         </Box>

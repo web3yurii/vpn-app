@@ -5,7 +5,6 @@ import { exec } from "child_process";
 import util from "util";
 import { app, Tray, Menu, nativeImage, BrowserWindow } from "electron";
 import { getAppIconByPid } from "@lwtlab/node-mac-app-icon";
-import axios from "axios";
 import { processIconMap, normalizeProcessName } from "./processIconMap";
 import svg2img from "svg2img";
 const execAsync = util.promisify(exec);
@@ -241,63 +240,53 @@ if (fs.existsSync(cachePath)) {
 
 async function fetchIconFromWeb(processName: string): Promise<string | null> {
   try {
-    let iconUrl: string | null = null;
-
     if (iconCache[processName] && fs.existsSync(iconCache[processName])) {
-      console.log(
-        `Icon for ${processName} is already cached. Skipping download.`
-      );
       return iconCache[processName];
     }
+
     const normalizedProcessName = normalizeProcessName(processName);
+    const iconFilename = processIconMap[normalizedProcessName];
 
-    // Check if the process name is in the predefined map
-    if (processIconMap[normalizedProcessName]) {
-      console.log(`Found icon URL in map for process: ${processName}`);
-      iconUrl = processIconMap[normalizedProcessName];
-    }
-    // else {
-    //   iconUrl = `https://api.iconify.design/simple-icons:${processName.toLowerCase()}.svg`;
-    // }
-
-    if (!iconUrl) {
-      console.error(`No icon URL found for process: ${processName}`);
+    if (!iconFilename) {
       return null;
     }
 
-    // Download the icon
-    const response = await axios.get(iconUrl, { responseType: "arraybuffer" });
-    const buffer = Buffer.from(response.data, "binary");
+    const localIconPath = path.join(app.getAppPath(), "resources", "icons", iconFilename);
 
-    // Convert SVG to PNG if necessary
     let pngBuffer: Buffer;
-    if (iconUrl.endsWith(".svg")) {
+    if (iconFilename.endsWith(".svg")) {
+      let svgContent: string;
+      try {
+        // Read as string — avoids asar lstat and works inside packed archives
+        svgContent = fs.readFileSync(localIconPath, "utf-8");
+      } catch {
+        console.error(`Bundled icon not found: ${localIconPath}`);
+        return null;
+      }
       pngBuffer = await new Promise((resolve, reject) => {
-        svg2img(iconUrl, (error, buffer) => {
+        svg2img(svgContent, (error, buffer) => {
           if (error) return reject(error);
           resolve(buffer);
         });
       });
     } else {
-      pngBuffer = buffer;
+      try {
+        pngBuffer = fs.readFileSync(localIconPath);
+      } catch {
+        console.error(`Bundled icon not found: ${localIconPath}`);
+        return null;
+      }
     }
 
-    // Save the icon to the temp directory
-    const destinationFolder = os.tmpdir();
-    const iconFileName = `icon_${processName}_web.png`;
-    const iconPngPath = path.join(destinationFolder, iconFileName);
+    const iconPngPath = path.join(os.tmpdir(), `icon_${processName}_web.png`);
     fs.writeFileSync(iconPngPath, pngBuffer);
 
-    // Update the cache
     iconCache[processName] = iconPngPath;
     saveIconCache();
 
     return iconPngPath;
   } catch (error) {
-    console.error(
-      `Failed to fetch icon from web for process ${processName}:`,
-      error
-    );
+    console.error(`Failed to load bundled icon for process ${processName}:`, error);
     return null;
   }
 }

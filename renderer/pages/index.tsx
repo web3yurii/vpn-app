@@ -180,7 +180,7 @@ function ExpandedHomePage() {
                   spacing={4}
                   align="center"
                   justifyContent="flex-start"
-                  h="100%"
+                  minH="100%"
                 >
                   {/* Connection Status */}
 
@@ -228,6 +228,7 @@ function ExpandedHomePage() {
                     handleStopProxy={handleStopProxy}
                     isLoading={isLoading}
                     expanded={true}
+                    appBooted={appBooted}
                   />
 
                   <GlobalExitCountrySelector

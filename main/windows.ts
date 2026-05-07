@@ -56,13 +56,14 @@ export function createMainWindow(): BrowserWindow {
   });
 
   mainWindow.on("close", (event) => {
-    event.preventDefault();
-    if (platform === "darwin") {
-      app.dock.hide();
+    if (!state.isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+      if (platform === "darwin") {
+        app.dock.hide();
+      }
+      app.quit();
     }
-    mainWindow.hide();
-    state.tray.app.quit();
-    state.tray.app.exit();
   });
 
   mainWindow.on("system-context-menu", (event) => {
