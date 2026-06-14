@@ -82,8 +82,8 @@ function slerp(p0: THREE.Vector3, p1: THREE.Vector3, t: number): THREE.Vector3 {
   p0.normalize();
   p1.normalize();
 
-  // Calculate the angle between the two vectors
-  const omega = Math.acos(p0.dot(p1));
+  // Clamp to [-1, 1] to guard against floating-point values outside acos domain
+  const omega = Math.acos(Math.max(-1, Math.min(1, p0.dot(p1))));
 
   // If the vectors are very close or identical, just return one of them
   if (omega < 1e-6) {
@@ -224,13 +224,15 @@ const Bridge = ({
         .normalize()
         .multiplyScalar(radius + heightAdjustment);
 
-      points.push(adjustedPoint);
+      if (isFinite(adjustedPoint.x) && isFinite(adjustedPoint.y) && isFinite(adjustedPoint.z)) {
+        points.push(adjustedPoint);
+      }
     }
 
     return points;
   }, [start, end, radius, amplitude]); // Only recalculate when these dependencies change
 
-  if (!validCoords || pathPoints.length === 0) return null;
+  if (!validCoords || pathPoints.length < 2) return null;
 
   return (
     <>

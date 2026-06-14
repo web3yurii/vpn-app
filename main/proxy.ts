@@ -93,6 +93,19 @@ async function findFreePort(preferred: number): Promise<number> {
     });
 }
 
+/** Download the anyone_hosts DNS mapping file via the SOCKS5 proxy after bootstrap. */
+async function downloadAnonHosts(): Promise<void> {
+    const url = "http://dns-live-1.anyone.anyone/tld/anyone";
+    const destPath = path.join(app.getPath("userData"), "anon-data", "anyone_hosts");
+    try {
+        const response = await state.anonSocksClient.get<string>(url, { responseType: "text" });
+        fs.writeFileSync(destPath, response.data);
+        console.log("anyone_hosts downloaded successfully");
+    } catch (error: any) {
+        console.warn("Failed to download anyone_hosts:", error.message);
+    }
+}
+
 /** Copy the latest consensus files to a backup dir so future fresh installs can seed from them. */
 function updateConsensusBackup() {
     const userData = app.getPath("userData");
@@ -272,6 +285,7 @@ export async function startAnyoneProxy() {
         console.log("Anyone proxy started.");
 
         setProxySettings(true, state.proxyPort);
+        downloadAnonHosts().catch(() => {});
 
         // Create Control client and authenticate using the actual dynamic port
         try {

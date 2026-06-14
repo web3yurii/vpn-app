@@ -62,7 +62,6 @@ export function createMainWindow(): BrowserWindow {
       if (platform === "darwin") {
         app.dock.hide();
       }
-      app.quit();
     }
   });
 

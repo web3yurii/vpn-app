@@ -7,6 +7,11 @@ directories:
   output: dist
   buildResources: resources
 files:
+  - "!**/*.{md,MD}"
+  - "!**/*.map"
+  - "!**/examples/**"
+  - "!**/{test,tests,spec,__tests__}/**"
+  - "!**/*.d.ts"
   - from: .
     filter:
       - package.json
