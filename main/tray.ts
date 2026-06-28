@@ -141,6 +141,7 @@ export const CreateHTMLTray = () => {
     // Optionally, handle left-click to show/hide your window
     mb.tray.on("click", () => {
       const mainWindow = state.mainWindow;
+      if (!mainWindow || mainWindow.isDestroyed()) return;
       if (mainWindow.isVisible()) {
         mainWindow.hide();
       } else {
@@ -151,6 +152,7 @@ export const CreateHTMLTray = () => {
     // Keep double-click if you want
     mb.tray.on("double-click", () => {
       const mainWindow = state.mainWindow;
+      if (!mainWindow || mainWindow.isDestroyed()) return;
       if (mainWindow.isVisible()) {
         mainWindow.hide();
       } else {

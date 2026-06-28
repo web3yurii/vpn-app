@@ -46,7 +46,7 @@ if (!gotTheLock) {
   let mainWindowRef = null;
   app.on('second-instance', (_event, _argv, _workingDirectory) => {
     // Someone tried to run a second instance, focus the main window.
-    if (mainWindowRef) {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
       if (mainWindowRef.isMinimized()) mainWindowRef.restore();
       mainWindowRef.show();
       mainWindowRef.focus();
@@ -100,6 +100,7 @@ if (!gotTheLock) {
 
     const mainWindow = createMainWindow();
     mainWindowRef = mainWindow;
+    mainWindow.on('destroyed', () => { mainWindowRef = null; });
     // createTray(mainWindow);
     CreateHTMLTray();
 
@@ -116,7 +117,9 @@ if (!gotTheLock) {
     });
 
     // Graceful shutdown: prevent the quit, clean up proxy + anon process,
-    // then call app.quit() again (isCleaningUp guard prevents infinite loop).
+    // then call app.exit(0) to terminate. Using exit() instead of quit()
+    // avoids the re-entrancy problem where a second before-quit sometimes
+    // doesn't propagate correctly from inside an async handler.
     app.on("before-quit", async (event) => {
       if (isCleaningUp) return;
       isCleaningUp = true;
@@ -130,17 +133,14 @@ if (!gotTheLock) {
           await stopAnyoneProxy();
         }
       } catch (_) {}
-      app.quit();
+      globalShortcut.unregisterAll();
+      app.exit(0);
     });
 
     app.on("window-all-closed", () => {
       if (platform === "darwin") {
         app.dock.hide();
       }
-    });
-
-    app.on("will-quit", () => {
-      globalShortcut.unregisterAll();
     });
 
     // Check for updates

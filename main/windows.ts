@@ -65,6 +65,10 @@ export function createMainWindow(): BrowserWindow {
     }
   });
 
+  mainWindow.on("destroyed", () => {
+    state.mainWindow = null;
+  });
+
   mainWindow.on("system-context-menu", (event) => {
     event.preventDefault();
   });
